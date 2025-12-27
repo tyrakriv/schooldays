@@ -9,6 +9,9 @@ from data_handler import load_and_process_data
 
 COORD_FILE = os.path.join(os.path.dirname(__file__), "coordinates.json")
 
+# Global timestamp for this run instance
+SESSION_TIMESTAMP = datetime.now().strftime("%Y%m%d_%H%M%S")
+
 def load_coordinates():
     if not os.path.exists(COORD_FILE):
         print("Error: coordinates.json not found. Run config_wizard.py first!")
@@ -17,13 +20,12 @@ def load_coordinates():
         return json.load(f)
 
 def log_runtime_error(student, reason):
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    
+    # Use global session timestamp so all errors go to one file
     reports_dir = "reports"
     if not os.path.exists(reports_dir):
         os.makedirs(reports_dir)
     
-    filename = os.path.join(reports_dir, f"run-validation-{timestamp}.csv")
+    filename = os.path.join(reports_dir, f"run-validation-{SESSION_TIMESTAMP}.csv")
     
     err_entry = student.copy()
     if 'error_reason' in err_entry:
