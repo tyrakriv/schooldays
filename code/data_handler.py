@@ -32,7 +32,7 @@ def load_and_process_data(excel_path):
     student_id_col = find_column_robust(df, "student id")
     selection_col = find_column_robust(df, ["yearbook photo"])
     date_col = find_column_robust(df, "yearbook date")
-    last_name_col = find_column_robust(df, "last name")
+    last_name_col = find_column_robust(df, "student last name")
 
     if not student_id_col or not selection_col or not date_col or not last_name_col:
         if not student_id_col:
@@ -42,7 +42,7 @@ def load_and_process_data(excel_path):
         if not date_col:
             print("Error: Could not find 'Yearbook Date' column.")
         if not last_name_col:
-            print("Error: Could not find 'Last Name' column.")
+            print("Error: Could not find 'Student Last Name' column.")
         print("Columns found:", list(df.columns))
         return []
     
