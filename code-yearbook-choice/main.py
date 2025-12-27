@@ -82,7 +82,7 @@ def run_automation():
         pyautogui.press('enter') 
         
         # Wait for load (Very important for legacy apps)
-        time.sleep(1.0) 
+        time.sleep(0.1) 
         
         # 2. VALIDATION: Check Last Name
         if 'last_name_box' in coords:
