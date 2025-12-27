@@ -54,32 +54,11 @@ def load_and_process_data(excel_path):
     # ---------------------------------------------------------
     invalid_rows = []
     
-    if date_col:
-        # Identify invalid dates
-        # coerce errors -> NaT
-        temp_dates = pd.to_datetime(df[date_col], errors='coerce')
-        
-        # Find indices where date is NaT but original was not empty
-        
-        mask_invalid = temp_dates.isna() & df[date_col].notna()
-        # also check empty strings if they are not considered NaN by pandas read
-        
-        # Get the invalid rows
-        bad_rows_df = df[mask_invalid]
-        
-        if not bad_rows_df.empty:
-            print(f"Found {len(bad_rows_df)} rows with invalid dates.")
-            # Add to invalid list
-            for idx, row in bad_rows_df.iterrows():
-                invalid_rows.append(row)
-                
-            # Filter main DF to exclude these rows for automation
-            df = df[~mask_invalid].copy()
-            # Update date column in clean DF to the datetime objects
-            df[date_col] = temp_dates[~mask_invalid]
-    else:
-        # If no date column, we can't sort by date, but we don't error out.
-        pass
+    # ---------------------------------------------------------
+    # DATA PROCESSING LOOP
+    # ---------------------------------------------------------
+    # We moved validation inside the loop to support "Single Row = Date Optional" logic.
+    pass
 
 
 
@@ -106,9 +85,50 @@ def load_and_process_data(excel_path):
                 invalid_rows.append(row)
             continue
 
-        if date_col and date_col in student_rows.columns:
-            # Sort desc
-            student_rows = student_rows.sort_values(by=date_col, ascending=False)
+        # Handle Date Logic
+        # New Rule: If single row, Date is optional/can be invalid.
+        #           If multiple rows, Date must be valid to sort.
+        
+        if date_col:
+             # Convert dates for this student's rows
+             # We do this here (locally) instead of globally.
+             
+             # Create a series of converted dates
+             row_dates = pd.to_datetime(student_rows[date_col], errors='coerce')
+             
+             # Check for invalid dates
+             invalid_date_mask = row_dates.isna() & student_rows[date_col].notna()
+             has_invalid_dates = invalid_date_mask.any()
+             
+             if len(student_rows) > 1:
+                 # MULTIPLE ROWS: All dates matching "latest" logic must be valid. 
+                 # Actually, if ANY date is invalid, can we trust the sort?
+                 # Safest is to require valid dates for ALL rows if we need to sort.
+                 
+                 if has_invalid_dates:
+                     print(f"Error: Student {student_id} has multiple rows but invalid dates. Cannot sort.")
+                     # Log all rows as invalid
+                     for idx, row in student_rows.iterrows():
+                         invalid_rows.append(row)
+                     continue
+                 
+                 # Dates are valid, overwrite with datetime objects for sorting
+                 student_rows[date_col] = row_dates
+                 
+                 # Sort desc
+                 student_rows = student_rows.sort_values(by=date_col, ascending=False)
+                 
+             else:
+                 # SINGLE ROW: We ignore date validity.
+                 pass
+        
+        # If no date column, we already filtered for duplicates above?
+        # The logic at L103 checked duplicates if NO date_col exists at all.
+        
+        # ------------------------------------------------------------------
+        # Conflict Check (Only for multiple rows with same VALID top date)
+        # ------------------------------------------------------------------
+        if len(student_rows) > 1 and date_col:
             
             # Check for conflicts: multiple entries with the same LATEST date
             top_date = student_rows.iloc[0][date_col]

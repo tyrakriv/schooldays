@@ -44,6 +44,9 @@ def validate_data():
     error_rows = []
     valid_count = 0
 
+    # Calculate counts per student to handle single-row exception
+    student_counts = df[student_id_col].value_counts()
+
     # Iterate through rows
     for index, row in df.iterrows():
         errors = []
@@ -52,6 +55,9 @@ def validate_data():
         sid = row[student_id_col]
         if pd.isna(sid) or str(sid).strip() == "":
             errors.append("Missing Student ID")
+            row_count = 0
+        else:
+            row_count = student_counts.get(sid, 0)
 
         # Check Selection
         sel = row[selection_col]
@@ -63,11 +69,18 @@ def validate_data():
         try:
              # Attempt to convert to datetime to verify it's a date
              if pd.isna(date_val):
-                 errors.append("Missing Date")
+                 # Missing date is acceptable IF it's a single row
+                 if row_count > 1:
+                     errors.append("Missing Date (Required for sorting multiple entries)")
              else:
                  pd.to_datetime(date_val)
         except Exception:
-            errors.append(f"Invalid Date Format: '{date_val}'")
+            # Date is invalid (format issue)
+            if row_count > 1:
+                errors.append(f"Invalid Date Format: '{date_val}' (Required for sorting multiple entries)")
+            else:
+                # Single row: we tolerate the invalid date
+                pass
 
         if errors:
             # Create error entry
@@ -96,8 +109,8 @@ def validate_data():
         
         error_df.to_csv(report_file, index=False)
         print(f"-> Error report generated: {report_file}")
-        print("Please fix these errors in the Excel file before running automation.")
-        sys.exit(1)
+        print("Note: These rows will be skipped during automation. Proceeding with valid data...")
+        # sys.exit(1)  <-- Removed to allow continuation
     else:
         print("-> No errors found. Data is ready for automation.")
 
