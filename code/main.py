@@ -22,13 +22,16 @@ def log_runtime_error(student, reason):
     reports_dir = "reports"
     if not os.path.exists(reports_dir):
         os.makedirs(reports_dir)
-        
-    filename = os.path.join(reports_dir, "execution_errors.csv")
+    
+    filename = os.path.join(reports_dir, f"run-validation-{timestamp}.csv")
     
     err_entry = student.copy()
+    if 'error_reason' in err_entry:
+        del err_entry['error_reason']
+        
     err_entry['error_reason'] = reason
-    err_entry['timestamp'] = datetime.now()
     
+    # Create ordered dict/df (Natural order is fine since we just added error_reason last)
     df = pd.DataFrame([err_entry])
     header = not os.path.exists(filename)
     try:
@@ -95,8 +98,15 @@ def run_automation():
                 print(f"  -> VALIDATION FAILED: Student ID {sid} not found (Last Name empty). Skipping.")
                 log_runtime_error(student, "Student ID not found (Empty Last Name)")
                 continue
-            else:
-                 print(f"  -> Validation Passed: Found Last Name '{last_name}'")
+                
+            # NEW: Check against Excel Last Name
+            excel_last_name = student.get('last_name', '')
+            if excel_last_name and last_name.lower() != excel_last_name.lower():
+                 print(f"  -> VALIDATION FAILED: Last Name Mismatch! Found: '{last_name}', Expected: '{excel_last_name}'")
+                 log_runtime_error(student, f"Last Name Mismatch (Found: {last_name}, Expected: {excel_last_name})")
+                 continue
+            
+            print(f"  -> Validation Passed: Found Last Name '{last_name}'")
         else:
              print("  -> Warning: Skipping validation (last_name_box not configured).")
  

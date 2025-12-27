@@ -8,19 +8,16 @@ def load_and_process_data(excel_path):
     
     Returns: A list of dicts, each representing a student to process.
     """
-    import glob
-    import os
+    from excel_utils import find_column_robust, get_excel_path
     
     if not excel_path:
-        excel_files = glob.glob("*.xlsx")
+        excel_path = get_excel_path()
         
-        if not excel_files:
+        if not excel_path:
             print("Error: No Excel file (.xlsx) found in this folder.")
             print("Please assume user has put one .xlsx file here.")
             return []
             
-        excel_path = excel_files[0]
-        
     print(f"Found Excel file: {excel_path}")
 
     try:
@@ -30,42 +27,24 @@ def load_and_process_data(excel_path):
         return []
     
     processed_data = []
-    
-    # Ensure columns exist (basic check based on screenshot headers)
-    # We need: 'Student ID', 'Yearbook Selection' (Col D?), 'Yearbook Date'
-    # Adjust column names to match EXACTLY what pandas reads.
-    # Based on user context: "column D" is the selection. 
-    # Let's assume standard headers or use index if headers are messy.
-    
-    # Cleaning column names just in case
-    # Helper for robust column finding
-    def find_column_robust(dataframe, keywords):
-        # keywords can be a single string or list of strings
-        if isinstance(keywords, str):
-            keywords = [keywords]
-            
-        for col in dataframe.columns:
-            col_lower = str(col).strip().lower()
-            for kw in keywords:
-                # Check for exact match of keyword in column name (ignoring case/spaces)
-                if kw.lower() in col_lower:
-                     return col
-        return None
 
     # Group by Student ID
     student_id_col = find_column_robust(df, "student id")
-            
-    if not student_id_col:
-        print("Error: Could not find 'Student ID' column.")
+    selection_col = find_column_robust(df, ["yearbook photo"])
+    date_col = find_column_robust(df, "yearbook date")
+    last_name_col = find_column_robust(df, "last name")
+
+    if not student_id_col or not selection_col or not date_col or not last_name_col:
+        if not student_id_col:
+            print("Error: Could not find 'Student ID' column.")
+        if not selection_col:
+            print("Error: Could not find 'Yearbook Selection' column.")
+        if not date_col:
+            print("Error: Could not find 'Yearbook Date' column.")
+        if not last_name_col:
+            print("Error: Could not find 'Last Name' column.")
         print("Columns found:", list(df.columns))
         return []
-
-    # Check for other columns early
-    # "Yearbook Selection" or just "selection"
-    # "Yearbook Selection" or just "selection"
-    selection_col = find_column_robust(df, ["yearbook photo"])
-    # "Yearbook Date"
-    date_col = find_column_robust(df, "yearbook date")
     
     unique_ids = df[student_id_col].unique()
     print(f"Found {len(unique_ids)} unique sorted by Student ID.")
@@ -176,6 +155,7 @@ def load_and_process_data(excel_path):
         
         entry = {
             'id': str(top_row[student_id_col]),
+            'last_name': str(top_row[last_name_col]).strip() if last_name_col else "",
             'selection': str(selection_val).lower().strip(), 
         }
         processed_data.append(entry)
@@ -203,4 +183,4 @@ def load_and_process_data(excel_path):
             
     return processed_data
         
-    return processed_data
+
