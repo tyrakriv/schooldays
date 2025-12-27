@@ -45,7 +45,7 @@ def log_runtime_error(student, reason):
 def run_automation():
     coords = load_coordinates()
     if not coords:
-        return
+        return False
 
     # User Safety Prompt
     print("--- READY TO START ---")
@@ -62,7 +62,7 @@ def run_automation():
 
     if not students:
         print("No student data found.")
-        return
+        return False
 
     # Wait a sec to switch focus
     print("Starting in 3 seconds...")
@@ -131,6 +131,22 @@ def run_automation():
         time.sleep(0.5)
 
     print("Automation Complete!")
+    return True
 
 if __name__ == "__main__":
-    run_automation()
+    import sys
+    try:
+        success = run_automation()
+        if success:
+            sys.exit(0) # Success
+        else:
+            sys.exit(1) # Logic error or setup failure
+    except (pyautogui.FailSafeException, KeyboardInterrupt):
+        print("\n")
+        print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+        print("   AUTOMATION ABORTED BY USER (FailSafe Triggered)")
+        print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+        sys.exit(1)
+    except Exception as e:
+        print(f"\nCRITICAL ERROR: {e}")
+        sys.exit(1)

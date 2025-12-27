@@ -69,7 +69,11 @@ def validate_data():
              failed_parse_mask = row_dates.isna() & original_vals.notna()
              
              if failed_parse_mask.any():
-                 fallback_dates = pd.to_datetime(original_vals[failed_parse_mask], errors='coerce')
+                 import warnings
+                 with warnings.catch_warnings():
+                     warnings.simplefilter("ignore")
+                     fallback_dates = pd.to_datetime(original_vals[failed_parse_mask], errors='coerce')
+                 
                  row_dates.loc[failed_parse_mask] = fallback_dates
              
              # Apply parsed dates

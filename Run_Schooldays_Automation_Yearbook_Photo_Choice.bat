@@ -37,5 +37,8 @@ goto MENU
 cls
 echo --- Starting Automation ---
 python code-yearbook-choice\main.py
+if %errorlevel% equ 0 (
+    exit
+)
 pause
 goto MENU
