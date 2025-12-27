@@ -40,62 +40,123 @@ def validate_data():
 
     print("Columns identified successfully.")
 
-    # 3. Validate Rows
+    # 3. Process Data (Clean, Dedup, Sort)
+    cleaned_rows = []
     error_rows = []
-    valid_count = 0
-
-    # Calculate counts per student to handle single-row exception
-    student_counts = df[student_id_col].value_counts()
-
-    # Iterate through rows
-    for index, row in df.iterrows():
-        errors = []
+    
+    unique_ids = df[student_id_col].unique()
+    print(f"Processing {len(unique_ids)} unique Student IDs...")
+    
+    for student_id in unique_ids:
+        # Filter rows for this student
+        student_rows = df[df[student_id_col] == student_id].copy()
         
-        # Check Student ID (Basic check: not empty)
-        sid = row[student_id_col]
-        if pd.isna(sid) or str(sid).strip() == "":
-            errors.append("Missing Student ID")
-            row_count = 0
-        else:
-            row_count = student_counts.get(sid, 0)
+        if student_rows.empty:
+            continue
 
-        # Check Selection
-        sel = row[selection_col]
-        if pd.isna(sel) or str(sel).strip().lower() not in ['a', 'b', 'c', 'd']:
-            errors.append(f"Invalid Selection: '{sel}' (Must be a, b, c, or d)")
+        row_count = len(student_rows)
+        
+        # --- Date Logic ---
+        if date_col:
+             # Convert dates (Strict + Fallback)
+             timestamp_fmt = '%m/%d/%Y %I:%M:%S %p'
+             
+             # Attempt parse
+             row_dates = pd.to_datetime(student_rows[date_col], format=timestamp_fmt, errors='coerce')
+             
+             # Fallback for manual entries
+             original_vals = student_rows[date_col]
+             failed_parse_mask = row_dates.isna() & original_vals.notna()
+             
+             if failed_parse_mask.any():
+                 fallback_dates = pd.to_datetime(original_vals[failed_parse_mask], errors='coerce')
+                 row_dates.loc[failed_parse_mask] = fallback_dates
+             
+             # Apply parsed dates
+             student_rows[date_col] = row_dates
+             
+             # Check Validity
+             invalid_date_mask = row_dates.isna() & original_vals.notna()
+             
+             # Rule: Multiple rows require valid dates for sorting
+             if row_count > 1 and invalid_date_mask.any():
+                 # Reject all rows for this student
+                 print(f"Error: Student {student_id} has {row_count} rows but invalid dates. Cannot sort.")
+                 for idx, row in student_rows.iterrows():
+                     err_row = row.copy()
+                     err_row['error_reason'] = "Multiple rows with invalid dates"
+                     error_rows.append(err_row)
+                 continue
+                 
+             # Sort Descending (Newest First)
+             student_rows = student_rows.sort_values(by=date_col, ascending=False)
+        
+        elif row_count > 1:
+            # Multiple rows but no date column at all
+            print(f"Error: Student {student_id} has duplicates but no Date column.")
+            for idx, row in student_rows.iterrows():
+                 err_row = row.copy()
+                 err_row['error_reason'] = "Duplicate rows without Date column"
+                 error_rows.append(err_row)
+            continue
 
-        # Check Date
-        date_val = row[date_col]
+        # --- Top Row Selection ---
+        top_row = student_rows.iloc[0]
+        
+        # --- Conflict Check (Optional: Same Date) ---
+        if row_count > 1 and date_col:
+            top_date = top_row[date_col]
+            same_date_rows = student_rows[student_rows[date_col] == top_date]
+            
+            if len(same_date_rows) > 1:
+                 # Check selection conflict
+                 selections = set()
+                 for idx, r in same_date_rows.iterrows():
+                     s_val = str(r[selection_col]).lower().strip() if selection_col else ""
+                     selections.add(s_val)
+                 
+                 if len(selections) > 1:
+                     print(f"Error: Student {student_id} has conflicting selections on same date {top_date}.")
+                     for idx, row in same_date_rows.iterrows():
+                         err_row = row.copy()
+                         err_row['error_reason'] = f"Conflicting selections {selections} on same date"
+                         error_rows.append(err_row)
+                     continue
+
+        # --- Validate Selection ---
+        if selection_col:
+            sel = top_row[selection_col]
+            if pd.isna(sel) or str(sel).strip().lower() not in ['a', 'b', 'c', 'd']:
+                err_row = top_row.copy()
+                err_row['error_reason'] = f"Invalid Selection: '{sel}'"
+                error_rows.append(err_row)
+                continue
+        
+        # --- Add to Clean List ---
+        cleaned_rows.append(top_row)
+
+    # 4. Save Outputs
+    print(f"\nProcessing Complete.")
+    print(f"Cleaned Rows: {len(cleaned_rows)}")
+    print(f"Error Rows: {len(error_rows)}")
+
+    # Save Cleaned Data
+    clean_file = "cleaned_data.xlsx"
+    if cleaned_rows:
         try:
-             # Attempt to convert to datetime to verify it's a date
-             if pd.isna(date_val):
-                 # Missing date is acceptable IF it's a single row
-                 if row_count > 1:
-                     errors.append("Missing Date (Required for sorting multiple entries)")
-             else:
-                 pd.to_datetime(date_val)
-        except Exception:
-            # Date is invalid (format issue)
-            if row_count > 1:
-                errors.append(f"Invalid Date Format: '{date_val}' (Required for sorting multiple entries)")
-            else:
-                # Single row: we tolerate the invalid date
-                pass
+            clean_df = pd.DataFrame(cleaned_rows)
+            # Reorder columns to put ID first, if possible, but keeping original structure is fine
+            clean_df.to_excel(clean_file, index=False)
+            print(f"-> SUCCESS: Cleaned data saved to '{clean_file}'")
+        except Exception as e:
+            print(f"Critical Error saving cleaned data: {e}")
+            sys.exit(1)
+    else:
+        print("-> Warning: No valid data found to save.")
+        if os.path.exists(clean_file):
+            os.remove(clean_file) 
 
-        if errors:
-            # Create error entry
-            error_entry = row.copy()
-            # Combine multiple errors if any
-            error_entry['error_reason'] = "; ".join(errors)
-            error_rows.append(error_entry)
-        else:
-            valid_count += 1
-
-    # 4. Report
-    print(f"\nValidation Complete.")
-    print(f"Valid Rows: {valid_count}")
-    print(f"Invalid Rows: {len(error_rows)}")
-
+    # Save Errors
     if error_rows:
         reports_dir = "reports"
         if not os.path.exists(reports_dir):
@@ -104,15 +165,14 @@ def validate_data():
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         report_file = os.path.join(reports_dir, f"data-validation-{timestamp}.csv")
         
-        # Create DataFrame
         error_df = pd.DataFrame(error_rows)
-        
         error_df.to_csv(report_file, index=False)
         print(f"-> Error report generated: {report_file}")
-        print("Note: These rows will be skipped during automation. Proceeding with valid data...")
-        # sys.exit(1)  <-- Removed to allow continuation
+        
+    if not cleaned_rows:
+         sys.exit(1) # Fail if nothing to run
     else:
-        print("-> No errors found. Data is ready for automation.")
+         print("-> Ready for automation.")
 
 if __name__ == "__main__":
     validate_data()
