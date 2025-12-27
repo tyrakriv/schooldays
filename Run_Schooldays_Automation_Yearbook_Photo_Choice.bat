@@ -18,16 +18,24 @@ goto MENU
 :SETUP
 cls
 echo --- Step 1: Validating Excel Data ---
-python code\validate_data.py
+python code-yearbook-choice\validate_data.py
+if %errorlevel% neq 0 (
+    echo.
+    echo !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    echo  VALIDATION FAILED. Fix errors and try again.
+    echo !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    pause
+    goto MENU
+)
 echo.
 echo --- Step 2: Configuring Screen Coordinates ---
-python code\config_wizard.py
+python code-yearbook-choice\config_wizard.py
 pause
 goto MENU
 
 :RUN
 cls
 echo --- Starting Automation ---
-python code\main.py
+python code-yearbook-choice\main.py
 pause
 goto MENU

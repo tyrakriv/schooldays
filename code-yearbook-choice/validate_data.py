@@ -1,6 +1,7 @@
 import pandas as pd
 from excel_utils import find_column_robust, get_excel_path
 import os
+import sys
 from datetime import datetime
 
 def validate_data():
@@ -11,29 +12,31 @@ def validate_data():
     
     if not excel_path:
         print("Error: No Excel file (.xlsx) found in this folder.")
-        return
+        sys.exit(1)
     print(f"Checking file: {excel_path}")
 
     try:
         df = pd.read_excel(excel_path)
     except Exception as e:
         print(f"Critical Error: Could not read Excel file. {e}")
-        return
+        sys.exit(1)
 
     # 2. Check Columns
     student_id_col = find_column_robust(df, "student id")
     selection_col = find_column_robust(df, ["yearbook photo", "selection"])
     date_col = find_column_robust(df, "yearbook date")
+    last_name_col = find_column_robust(df, "student last name")
 
     missing_cols = []
     if not student_id_col: missing_cols.append("Student ID")
     if not selection_col: missing_cols.append("Yearbook Selection")
     if not date_col: missing_cols.append("Yearbook Date")
+    if not last_name_col: missing_cols.append("Student Last Name")
 
     if missing_cols:
         print(f"Error: Missing required columns: {', '.join(missing_cols)}")
         print(f"Found columns: {list(df.columns)}")
-        return
+        sys.exit(1)
 
     print("Columns identified successfully.")
 
@@ -94,6 +97,7 @@ def validate_data():
         error_df.to_csv(report_file, index=False)
         print(f"-> Error report generated: {report_file}")
         print("Please fix these errors in the Excel file before running automation.")
+        sys.exit(1)
     else:
         print("-> No errors found. Data is ready for automation.")
 
