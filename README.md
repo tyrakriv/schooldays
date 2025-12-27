@@ -4,11 +4,7 @@ This folder contains the automation tools for entering student data.
 
 ## Initial Setup (Do this once)
 
-1.  **Install Python**:
-    -   If I haven't been able to install it for you, download it from [python.org](https://www.python.org/downloads/).
-    -   **IMPORTANT**: Check the box **"Add Python to PATH"** during installation.
-
-2.  **Install Libraries**:
+1.  **Install Libraries**:
     -   Double-click [0_Install_Dependencies.bat]
     -   Wait for it to say "Requirements installed successfully!".
 
@@ -26,5 +22,4 @@ This folder contains the automation tools for entering student data.
 4.  Sit back and watch! To stop it immediately, move your mouse to any corner of the screen.
 
 ## Troubleshooting
--   **"Python not found"**: Re-install Python and MAKE SURE to check "Add Python to PATH".
 -   **Clicking the wrong spot**: The window moved. Run [1_Setup_Wizard.bat] again.
