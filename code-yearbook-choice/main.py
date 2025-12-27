@@ -71,9 +71,7 @@ def run_automation():
     for i, student in enumerate(students):
         sid = student['id']
         selection = student['selection']
-        
-        print(f"[{i+1}/{len(students)}] Processing ID: {sid}, Selection: {selection}")
-        
+                
         # 1. Search
         pyautogui.click(coords['search_box']['x'], coords['search_box']['y'])
         # Double click to select all text (to overwrite previous)
@@ -108,14 +106,14 @@ def run_automation():
                  log_runtime_error(student, f"Last Name Mismatch (Found: {last_name}, Expected: {excel_last_name})")
                  continue
             
-            print(f"  -> Validation Passed: Found Last Name '{last_name}'")
         else:
              print("  -> Warning: Skipping validation (last_name_box not configured).")
  
         
         # 2. Select Option
         if selection == 'd':
-            print("  -> Selection is 'd' (Default). Skipping clicks.")
+            #do nothing since d is default
+            pass
         elif selection == 'a':
             pyautogui.click(coords['option_a']['x'], coords['option_a']['y'])
         elif selection == 'b':
