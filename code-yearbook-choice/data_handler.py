@@ -181,27 +181,4 @@ def load_and_process_data(excel_path):
         }
         processed_data.append(entry)
         
-    # SAVE ERROR REPORT (Again, in case we added new invalid rows inside the loop)
-    # We might have saved some earlier. We should probably do one save at the end?
-    # Or append? 
-    # Current code saved `invalid_rows` BEFORE the loop. 
-    # Let's move the save logic to AFTER the loop to include conflicts.
-    
-    if invalid_rows:
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        
-        reports_dir = "reports"
-        if not os.path.exists(reports_dir):
-            os.makedirs(reports_dir)
-            
-        error_filename = os.path.join(reports_dir, f"unknown_errors_{timestamp}.csv")
-        
-        try:
-            pd.DataFrame(invalid_rows).to_csv(error_filename, index=False)
-            print(f"Reported {len(invalid_rows)} invalid/conflicting entries to: {error_filename}")
-        except Exception as e:
-            print(f"Failed to save error report: {e}")
-            
     return processed_data
-        
-
