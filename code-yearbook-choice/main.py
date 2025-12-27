@@ -85,8 +85,8 @@ def run_automation():
         # 2. VALIDATION: Check Last Name
         if 'last_name_box' in coords:
             pyautogui.click(coords['last_name_box']['x'], coords['last_name_box']['y'])
-            # Select All
-            pyautogui.hotkey('ctrl', 'a')
+            # Select All (Double Click)
+            pyautogui.doubleClick()
             time.sleep(0.1)
             # Copy
             pyautogui.hotkey('ctrl', 'c')
