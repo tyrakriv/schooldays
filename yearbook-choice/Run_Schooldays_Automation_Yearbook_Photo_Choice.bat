@@ -1,44 +1,42 @@
 @echo off
-:MENU
 cls
-echo ------------------------------------------
-echo    SCHOOL DAYS AUTOMATION MENU
-echo ------------------------------------------
+echo ---------------------------------------------------
+echo    SCHOOL DAYS AUTOMATION (Seamless Mode)
+echo ---------------------------------------------------
 echo.
-echo 1. Setup (Validate Data + Configure Screen)
-echo 2. Run Automation
-echo.
-echo ------------------------------------------
-set /p choice=Select an option (1 or 2): 
 
-if "%choice%"=="1" goto SETUP
-if "%choice%"=="2" goto RUN
-goto MENU
-
-:SETUP
-cls
-echo --- Step 1: Validating Excel Data ---
+:: Step 1: Validation & Cleanup (Always Run)
+echo --- Step 1: Validating & Cleaning Data ---
 python code-yearbook-choice\validate_data.py
+
+:: Check if validation failed (ErrorLevel 1 = Critital, ErrorLevel 0 = OK)
 if %errorlevel% neq 0 (
     echo.
-    echo !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    echo  VALIDATION FAILED. Fix errors and try again.
-    echo !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    echo [ERROR] Validation Failed. Please fix the Excel file and try again.
     pause
-    goto MENU
+    exit /b
 )
+
+:: Step 1.5: Config (Always Run)
 echo.
 echo --- Step 2: Configuring Screen Coordinates ---
 python code-yearbook-choice\config_wizard.py
-pause
-goto MENU
 
-:RUN
-cls
-echo --- Starting Automation ---
+:: Step 2: Automation
+echo.
+echo --- Step 3: Running Automation ---
 python code-yearbook-choice\main.py
+
 if %errorlevel% equ 0 (
-    exit
+    echo.
+    echo ***************************************************
+    echo       AUTOMATION COMPLETED SUCCESSFULLY!
+    echo ***************************************************
+    echo.
+    echo [SUCCESS] Press any key to close...
+    pause >nul
+) else (
+    echo.
+    echo [ABORTED] Automation stopped with errors or was cancelled.
+    pause
 )
-pause
-goto MENU

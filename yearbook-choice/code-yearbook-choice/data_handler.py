@@ -11,7 +11,7 @@ def load_and_process_data(excel_path):
     """
     from excel_utils import find_column_robust, get_excel_path
     
-    cleaned_path = "cleaned_data.xlsx"
+    cleaned_path = os.path.join(os.path.dirname(__file__), "cleaned_data.xlsx")
     
     if not os.path.exists(cleaned_path):
         print("Error: 'cleaned_data.xlsx' not found.")

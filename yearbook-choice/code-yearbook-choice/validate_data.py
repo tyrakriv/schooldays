@@ -145,7 +145,8 @@ def validate_data():
     print(f"Error Rows: {len(error_rows)}")
 
     # Save Cleaned Data
-    clean_file = "cleaned_data.xlsx"
+    # Use code folder path
+    clean_file = os.path.join(os.path.dirname(__file__), "cleaned_data.xlsx")
     if cleaned_rows:
         try:
             clean_df = pd.DataFrame(cleaned_rows)
