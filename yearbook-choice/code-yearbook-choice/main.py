@@ -75,6 +75,53 @@ def run_automation():
     print("Starting in 3 seconds...")
     time.sleep(3)
 
+    # 0. INITIALIZATION: Ensure "Web Entry" is UNCHECKED (Reset State)
+    # We do this once at the start to ensure we don't carry over manual checks
+    if 'web_entry_input_box' in coords and 'web_entry_checkbox' in coords:
+        pyautogui.click(coords['web_entry_input_box']['x'], coords['web_entry_input_box']['y'])
+        time.sleep(.05)
+        # Try to type to see if enabled
+        pyperclip.copy("")
+        pyautogui.typewrite("reset")
+        time.sleep(.05)
+        pyautogui.doubleClick()
+        time.sleep(.05)
+        pyautogui.hotkey('ctrl', 'c')
+        time.sleep(.05)
+        
+        if "reset" in pyperclip.paste().lower():
+            pyautogui.doubleClick()
+            time.sleep(.05)
+            pyautogui.press('backspace') 
+            time.sleep(.05)
+            pyautogui.click(coords['web_entry_checkbox']['x'], coords['web_entry_checkbox']['y'])
+            time.sleep(.05)
+        else:
+            pass
+            
+    # 0.5. INITIALIZATION: Ensure "Last Name" is UNCHECKED (Reset State)
+    if 'last_name_box' in coords and 'last_name_checkbox' in coords:
+        pyautogui.click(coords['last_name_box']['x'], coords['last_name_box']['y'])
+        time.sleep(.05)
+        # Try to type
+        pyperclip.copy("")
+        pyautogui.typewrite("reset")
+        time.sleep(.05)
+        pyautogui.doubleClick()
+        time.sleep(.05)
+        pyautogui.hotkey('ctrl', 'c')
+        time.sleep(.05)
+        
+        if "reset" in pyperclip.paste().lower():
+             pyautogui.doubleClick()
+             time.sleep(.05)
+             pyautogui.press('backspace') 
+             time.sleep(.05)
+             pyautogui.click(coords['last_name_checkbox']['x'], coords['last_name_checkbox']['y'])
+             time.sleep(.1)
+        else:
+            pass
+    
     for i, student in enumerate(students):
         sid = student['id']
         selection = student['selection']
@@ -131,16 +178,26 @@ def run_automation():
             print(f"  -> Unknown selection '{selection}'. Skipping.")
         
         # 3. Audit Trail (Check "Web Entry" and type "auto")
-        if 'web_entry_checkbox' in coords:
-            pyautogui.click(coords['web_entry_checkbox']['x'], coords['web_entry_checkbox']['y'])
-            time.sleep(.05)
-        
-        if 'web_entry_input_box' in coords:
+        if 'web_entry_input_box' in coords and 'web_entry_checkbox' in coords:
+            # Step A: Try to type "auto" in source box assuming it's enabled
             pyautogui.click(coords['web_entry_input_box']['x'], coords['web_entry_input_box']['y'])
             time.sleep(.05)
+            
+            # Select All to overwrite (Clean entry)
+            pyautogui.doubleClick()
+            time.sleep(.05)
+            
+            # Clear clipboard to ensure fresh check
+            pyperclip.copy("")
+            
             # Type "auto"
             pyautogui.typewrite("auto")
             time.sleep(.05)
+            
+            pasted_text = pyperclip.paste().lower().strip()
+        
+        else:
+            print("  -> Warning: Skipping audit trail (web_entry_input_box or web_entry_checkbox not configured).")
         
         # Small pause between records
         time.sleep(0.1)

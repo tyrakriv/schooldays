@@ -26,6 +26,7 @@ def run_wizard():
 
     # 1.5 Last Name Box (For Validation)
     coords["last_name_box"] = get_coordinate("LAST NAME FIELD (To verify student exists)")
+    coords["last_name_checkbox"] = get_coordinate("LAST NAME CHECKBOX (To allow input)")
 
        
     # 3. Option Locations

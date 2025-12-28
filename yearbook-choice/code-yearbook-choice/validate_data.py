@@ -102,7 +102,6 @@ def validate_data():
              # Rule: Multiple rows require valid dates for sorting
              if row_count > 1 and invalid_date_mask.any():
                  # Reject all rows for this student
-                 print(f"Error: Student {student_id} has {row_count} rows but invalid dates. Cannot sort.")
                  for idx, row in student_rows.iterrows():
                      err_row = row.copy()
                      err_row['error_reason'] = "Multiple rows with invalid dates"
