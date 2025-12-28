@@ -7,7 +7,7 @@ COORD_FILE = os.path.join(os.path.dirname(__file__), "coordinates.json")
 
 def get_coordinate(prompt_name):
     print(f"\n--- {prompt_name} ---")
-    print("1. Move your mouse cursor over the target location.")
+    print("1. Move your mouse cursor.")
     print("2. Press 'Enter' when ready (do not click).")
     input("Waiting for Enter...")
     point = pyautogui.position()
@@ -36,6 +36,10 @@ def run_wizard():
     coords["option_c"] = get_coordinate("OPTION 'C' (The third item in the list)")
     # We don't need 'd' if it's default, but good to have if we need to explicitly click it later.
     coords["option_d"] = get_coordinate("OPTION 'D' (The fourth/last item)")
+
+    # 4. Audit Trail Locations
+    coords["web_entry_checkbox"] = get_coordinate("WEB ENTRY CHECKBOX (To allow input)")
+    coords["web_entry_input_box"] = get_coordinate("WEB ENTRY INPUT (Where we type 'auto')")
 
     with open(COORD_FILE, "w") as f:
         json.dump(coords, f, indent=4)

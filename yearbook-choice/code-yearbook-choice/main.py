@@ -76,17 +76,17 @@ def run_automation():
         pyautogui.press('enter') 
         
         # Wait for load (Very important for legacy apps)
-        time.sleep(0.1) 
+        time.sleep(.05) 
         
         # 2. VALIDATION: Check Last Name
         if 'last_name_box' in coords:
             pyautogui.click(coords['last_name_box']['x'], coords['last_name_box']['y'])
             # Select All (Triple Click)
             pyautogui.tripleClick()
-            time.sleep(0.1)
+            time.sleep(.05)
             # Copy
             pyautogui.hotkey('ctrl', 'c')
-            time.sleep(0.1)
+            time.sleep(.05)
             
             last_name = pyperclip.paste().strip()
             
@@ -119,9 +119,17 @@ def run_automation():
         else:
             print(f"  -> Unknown selection '{selection}'. Skipping.")
         
-        # 3. Save (if needed)
-        # Uncomment if a save click is required
-        # pyautogui.click(coords['save_button']['x'], coords['save_button']['y'])
+        # 3. Audit Trail (Check "Web Entry" and type "auto")
+        if 'web_entry_checkbox' in coords:
+            pyautogui.click(coords['web_entry_checkbox']['x'], coords['web_entry_checkbox']['y'])
+            time.sleep(.05)
+        
+        if 'web_entry_input_box' in coords:
+            pyautogui.click(coords['web_entry_input_box']['x'], coords['web_entry_input_box']['y'])
+            time.sleep(.05)
+            # Type "auto"
+            pyautogui.typewrite("auto")
+            time.sleep(.05)
         
         # Small pause between records
         time.sleep(0.5)
