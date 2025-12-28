@@ -7,6 +7,23 @@ from datetime import datetime
 def validate_data():
     print("--- Starting Data Validation ---")
     
+    # 0. Define Session Log Path (Shared with main.py)
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    reports_dir = "reports"
+    if not os.path.exists(reports_dir):
+        os.makedirs(reports_dir)
+    
+    # We use a single file for both Setup and Run errors
+    report_file = os.path.join(reports_dir, f"session-errors-{timestamp}.csv")
+    
+    # Save this path to a temp file so main.py knows where to log
+    session_info_path = os.path.join(os.path.dirname(__file__), "current_session.txt")
+    try:
+        with open(session_info_path, "w") as f:
+            f.write(report_file)
+    except Exception as e:
+        print(f"Warning: Could not save session info: {e}")
+
     # 1. Find Excel File
     excel_path = get_excel_path()
     
@@ -162,16 +179,11 @@ def validate_data():
 
     # Save Errors
     if error_rows:
-        reports_dir = "reports"
-        if not os.path.exists(reports_dir):
-            os.makedirs(reports_dir)
-            
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        report_file = os.path.join(reports_dir, f"data-validation-{timestamp}.csv")
+        # report_file is already defined at top
         
         error_df = pd.DataFrame(error_rows)
         error_df.to_csv(report_file, index=False)
-        print(f"-> Error report generated: {report_file}")
+        print(f"-> Error report started: {report_file}")
         
     if not cleaned_rows:
          sys.exit(1) # Fail if nothing to run

@@ -20,12 +20,23 @@ def load_coordinates():
         return json.load(f)
 
 def log_runtime_error(student, reason):
-    # Use global session timestamp so all errors go to one file
-    reports_dir = "reports"
-    if not os.path.exists(reports_dir):
-        os.makedirs(reports_dir)
+    # Try to find the shared session file from validate_data.py
+    session_info_path = os.path.join(os.path.dirname(__file__), "current_session.txt")
+    filename = None
     
-    filename = os.path.join(reports_dir, f"run-validation-{SESSION_TIMESTAMP}.csv")
+    if os.path.exists(session_info_path):
+        try:
+            with open(session_info_path, "r") as f:
+                filename = f.read().strip()
+        except:
+            pass
+            
+    # Fallback if running standalone or read failed
+    if not filename:
+        reports_dir = "reports"
+        if not os.path.exists(reports_dir):
+            os.makedirs(reports_dir)
+        filename = os.path.join(reports_dir, f"run-runtime-errors-{SESSION_TIMESTAMP}.csv")
     
     err_entry = student.copy()
     if 'error_reason' in err_entry:
@@ -132,7 +143,7 @@ def run_automation():
             time.sleep(.05)
         
         # Small pause between records
-        time.sleep(0.5)
+        time.sleep(0.1)
 
     print("Automation Complete!")
     return True
