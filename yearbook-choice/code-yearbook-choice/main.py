@@ -52,6 +52,61 @@ def log_runtime_error(student, reason):
     except Exception as e:
         print(f"Failed to log runtime error: {e}")
 
+
+
+def log_success(student):
+    """Logs successfully processed students to a separate CSV."""
+    reports_dir = "reports"
+    if not os.path.exists(reports_dir):
+        os.makedirs(reports_dir)
+    filename = os.path.join(reports_dir, f"run-processed-{SESSION_TIMESTAMP}.csv")
+    
+    # Create ordered dict/df
+    df = pd.DataFrame([student])
+    header = not os.path.exists(filename)
+    try:
+        df.to_csv(filename, mode='a', header=header, index=False)
+    except Exception as e:
+        print(f"Failed to log success: {e}")
+
+def verify_field_is_editable(entry, field_name):
+    pyautogui.click(entry['x'], entry['y'])
+    time.sleep(.01)
+    # Try to type
+    pyperclip.copy("")
+    pyautogui.doubleClick()
+    pyautogui.hotkey('ctrl', 'c')
+    initial_text = pyperclip.paste()
+
+    checked = False
+    #if the text is empty, then the checkbox could be unchecked, so see if we can input anything
+    if initial_text.lower().strip() == 'auto':
+        checked = True
+    else:
+        pyautogui.doubleClick()
+        pyautogui.typewrite("reset")
+        time.sleep(.01)
+        pyperclip.copy("")
+        pyautogui.doubleClick()
+        pyautogui.hotkey('ctrl', 'c')
+        pasted_text = pyperclip.paste()
+        pyautogui.doubleClick()
+        if initial_text:
+            pyautogui.typewrite(initial_text)
+        else:
+            pyautogui.press('backspace')
+        if pasted_text.lower().strip() == 'reset':
+            checked = True
+
+    time.sleep(.01)
+
+    if not checked:
+        print(f"{field_name} Field is unchecked. Please fix and restart the program.")
+        return False
+    else:
+        print(f"{field_name} is checked")
+        return True
+
 def run_automation():
     coords = load_coordinates()
     if not coords:
@@ -77,42 +132,14 @@ def run_automation():
 
     # 0. INITIALIZATION: Ensure "Web Entry" is UNCHECKED (Reset State)
     # We do this once at the start to ensure we don't carry over manual checks
-    if 'web_entry_input_box' in coords and 'web_entry_checkbox' in coords:
-        pyautogui.click(coords['web_entry_input_box']['x'], coords['web_entry_input_box']['y'])
-        time.sleep(.05)
-        # Try to type
-        pyperclip.copy("")
-        pyautogui.doubleClick()
-        pyautogui.hotkey('ctrl', 'c')
-        time.sleep(.05)
-        
-        #if no text is in the input, then we need to click the checkbox
-        if pyperclip.paste().lower().strip() != '':
-            pyautogui.doubleClick()
-            time.sleep(.05)
-            pyautogui.click(coords['web_entry_checkbox']['x'], coords['web_entry_checkbox']['y'])
-            time.sleep(.05)
-        else:
-            pass
+    if 'web_entry_input_box' in coords:
+        if not verify_field_is_editable(coords['web_entry_input_box'], "Web Entry"):
+            return False
             
     # 0.5. INITIALIZATION: Ensure "Last Name" is UNCHECKED (Reset State)
-    if 'last_name_box' in coords and 'last_name_checkbox' in coords:
-        pyautogui.click(coords['last_name_box']['x'], coords['last_name_box']['y'])
-        time.sleep(.05)
-        # Try to type
-        pyperclip.copy("")
-        pyautogui.doubleClick()
-        pyautogui.hotkey('ctrl', 'c')
-        time.sleep(.05)
-        
-        #if no text is in the input, then we need to click the checkbox
-        if pyperclip.paste().lower().strip() != '':
-             pyautogui.doubleClick()
-             time.sleep(.05)
-             pyautogui.click(coords['last_name_checkbox']['x'], coords['last_name_checkbox']['y'])
-             time.sleep(.05)
-        else:
-            pass
+    if 'last_name_box' in coords:
+        if not verify_field_is_editable(coords['last_name_box'], "Last Name"):
+            return False
     
     for i, student in enumerate(students):
         sid = student['id']
@@ -120,21 +147,17 @@ def run_automation():
                 
         # 1. Search
         pyautogui.click(coords['search_box']['x'], coords['search_box']['y'])
-        # Double click to select all text (to overwrite previous)
         pyautogui.doubleClick() 
         pyautogui.typewrite(sid)
         pyautogui.press('enter') 
         
-        # Wait for load (Very important for legacy apps)
         time.sleep(.05) 
         
         # 2. VALIDATION: Check Last Name
         if 'last_name_box' in coords:
             pyautogui.click(coords['last_name_box']['x'], coords['last_name_box']['y'])
-            # Select All (Triple Click)
             pyautogui.tripleClick()
             time.sleep(.05)
-            # Copy
             pyautogui.hotkey('ctrl', 'c')
             time.sleep(.05)
             
@@ -145,7 +168,6 @@ def run_automation():
                 log_runtime_error(student, "Student ID not found (Empty Last Name)")
                 continue
                 
-            # NEW: Check against Excel Last Name
             excel_last_name = student.get('last_name', '')
             if excel_last_name and last_name.lower() != excel_last_name.lower():
                  print(f"  -> VALIDATION FAILED: Last Name Mismatch! Found: '{last_name}', Expected: '{excel_last_name}'")
@@ -155,21 +177,8 @@ def run_automation():
         else:
              print("  -> Warning: Skipping validation (last_name_box not configured).")
  
-        
-        # 2. Select Option
-        if selection == 'd':
-            pyautogui.click(coords['option_a']['x'], coords['option_a']['y'])
-        elif selection == 'a':
-            pyautogui.click(coords['option_a']['x'], coords['option_a']['y'])
-        elif selection == 'b':
-            pyautogui.click(coords['option_b']['x'], coords['option_b']['y'])
-        elif selection == 'c':
-            pyautogui.click(coords['option_c']['x'], coords['option_c']['y'])
-        else:
-            print(f"  -> Unknown selection '{selection}'. Skipping.")
-        
-        # 3. Audit Trail (Check "Web Entry" and type "auto")
-        if 'web_entry_input_box' in coords and 'web_entry_checkbox' in coords:
+        # 2. Audit Trail (Check "Web Entry" and type "auto")
+        if 'web_entry_input_box' in coords:
             # Step A: Try to type "auto" in source box assuming it's enabled
             pyautogui.click(coords['web_entry_input_box']['x'], coords['web_entry_input_box']['y'])
             time.sleep(.05)
@@ -183,10 +192,25 @@ def run_automation():
             time.sleep(.05)
         
         else:
-            print("  -> Warning: Skipping audit trail (web_entry_input_box or web_entry_checkbox not configured).")
+            print("  -> Warning: Skipping audit trail (web_entry_input_box not configured).")
+        
+        # 3. Select Option
+        if selection == 'd':
+            pyautogui.click(coords['option_d']['x'], coords['option_d']['y'])
+        elif selection == 'a':
+            pyautogui.click(coords['option_a']['x'], coords['option_a']['y'])
+        elif selection == 'b':
+            pyautogui.click(coords['option_b']['x'], coords['option_b']['y'])
+        elif selection == 'c':
+            pyautogui.click(coords['option_c']['x'], coords['option_c']['y'])
+        else:
+            print(f"  -> Unknown selection '{selection}'. Skipping.")
         
         # Small pause between records
-        time.sleep(0.1)
+        time.sleep(0.5)
+        
+        # Log success
+        log_success(student)
 
     print("Automation Complete!")
     return True
