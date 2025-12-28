@@ -80,19 +80,15 @@ def run_automation():
     if 'web_entry_input_box' in coords and 'web_entry_checkbox' in coords:
         pyautogui.click(coords['web_entry_input_box']['x'], coords['web_entry_input_box']['y'])
         time.sleep(.05)
-        # Try to type to see if enabled
+        # Try to type
         pyperclip.copy("")
-        pyautogui.typewrite("reset")
-        time.sleep(.05)
         pyautogui.doubleClick()
-        time.sleep(.05)
         pyautogui.hotkey('ctrl', 'c')
         time.sleep(.05)
         
-        if "reset" in pyperclip.paste().lower():
+        #if no text is in the input, then we need to click the checkbox
+        if pyperclip.paste().lower().strip() != '':
             pyautogui.doubleClick()
-            time.sleep(.05)
-            pyautogui.press('backspace') 
             time.sleep(.05)
             pyautogui.click(coords['web_entry_checkbox']['x'], coords['web_entry_checkbox']['y'])
             time.sleep(.05)
@@ -105,20 +101,16 @@ def run_automation():
         time.sleep(.05)
         # Try to type
         pyperclip.copy("")
-        pyautogui.typewrite("reset")
-        time.sleep(.05)
         pyautogui.doubleClick()
-        time.sleep(.05)
         pyautogui.hotkey('ctrl', 'c')
         time.sleep(.05)
         
-        if "reset" in pyperclip.paste().lower():
+        #if no text is in the input, then we need to click the checkbox
+        if pyperclip.paste().lower().strip() != '':
              pyautogui.doubleClick()
              time.sleep(.05)
-             pyautogui.press('backspace') 
-             time.sleep(.05)
              pyautogui.click(coords['last_name_checkbox']['x'], coords['last_name_checkbox']['y'])
-             time.sleep(.1)
+             time.sleep(.05)
         else:
             pass
     
@@ -184,17 +176,12 @@ def run_automation():
             time.sleep(.05)
             
             # Select All to overwrite (Clean entry)
-            pyautogui.doubleClick()
+            pyautogui.tripleClick()
             time.sleep(.05)
-            
-            # Clear clipboard to ensure fresh check
-            pyperclip.copy("")
             
             # Type "auto"
             pyautogui.typewrite("auto")
             time.sleep(.05)
-            
-            pasted_text = pyperclip.paste().lower().strip()
         
         else:
             print("  -> Warning: Skipping audit trail (web_entry_input_box or web_entry_checkbox not configured).")
