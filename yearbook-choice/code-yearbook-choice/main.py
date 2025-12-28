@@ -159,13 +159,17 @@ def run_automation():
         # 2. Select Option
         if selection == 'd':
             #do nothing since d is default
+            print(f"  -> DEFAULT SELECTION: Student ID {sid} selected default option (D).")
             pass
         elif selection == 'a':
             pyautogui.click(coords['option_a']['x'], coords['option_a']['y'])
+            print(f"  -> SELECTION: Student ID {sid} selected option A.")
         elif selection == 'b':
             pyautogui.click(coords['option_b']['x'], coords['option_b']['y'])
+            print(f"  -> SELECTION: Student ID {sid} selected option B.")
         elif selection == 'c':
             pyautogui.click(coords['option_c']['x'], coords['option_c']['y'])
+            print(f"  -> SELECTION: Student ID {sid} selected option C.")
         else:
             print(f"  -> Unknown selection '{selection}'. Skipping.")
         
