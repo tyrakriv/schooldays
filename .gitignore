@@ -1,3 +1,4 @@
 yearbook-choice/reports/*
 yearbook-choice/code-yearbook-choice/__pycache__/*
 .DS_Store
+cleaned_data.xlsx
