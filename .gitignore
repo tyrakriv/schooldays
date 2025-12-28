@@ -1,4 +1,6 @@
 yearbook-choice/reports/*
 yearbook-choice/code-yearbook-choice/__pycache__/*
+yearbook-choice/code-yearbook-choice/coordinates.json
+yearbook-choice/code-yearbook-choice/current_session.txt
 .DS_Store
 cleaned_data.xlsx

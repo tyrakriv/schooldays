@@ -71,7 +71,7 @@ def log_success(student):
 
 def verify_field_is_editable(entry, field_name):
     pyautogui.click(entry['x'], entry['y'])
-    time.sleep(.01)
+    time.sleep(.5)
     # Try to type
     pyperclip.copy("")
     pyautogui.doubleClick()
@@ -85,7 +85,7 @@ def verify_field_is_editable(entry, field_name):
     else:
         pyautogui.doubleClick()
         pyautogui.typewrite("reset")
-        time.sleep(.01)
+        time.sleep(.1)
         pyperclip.copy("")
         pyautogui.doubleClick()
         pyautogui.hotkey('ctrl', 'c')
