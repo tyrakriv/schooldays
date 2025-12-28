@@ -98,7 +98,7 @@ def verify_field_is_editable(entry, field_name):
         if pasted_text.lower().strip() == 'reset':
             checked = True
 
-    time.sleep(.01)
+    time.sleep(.1)
 
     if not checked:
         print(f"{field_name} Field is unchecked. Please fix and restart the program.")
@@ -151,15 +151,15 @@ def run_automation():
         pyautogui.typewrite(sid)
         pyautogui.press('enter') 
         
-        time.sleep(.05) 
+        time.sleep(.1) 
         
         # 2. VALIDATION: Check Last Name
         if 'last_name_box' in coords:
             pyautogui.click(coords['last_name_box']['x'], coords['last_name_box']['y'])
             pyautogui.tripleClick()
-            time.sleep(.05)
+            time.sleep(.1)
             pyautogui.hotkey('ctrl', 'c')
-            time.sleep(.05)
+            time.sleep(.1)
             
             last_name = pyperclip.paste().strip()
             
@@ -181,15 +181,15 @@ def run_automation():
         if 'web_entry_input_box' in coords:
             # Step A: Try to type "auto" in source box assuming it's enabled
             pyautogui.click(coords['web_entry_input_box']['x'], coords['web_entry_input_box']['y'])
-            time.sleep(.05)
+            time.sleep(.1)
             
             # Select All to overwrite (Clean entry)
             pyautogui.tripleClick()
-            time.sleep(.05)
+            time.sleep(.1)
             
             # Type "auto"
             pyautogui.typewrite("auto")
-            time.sleep(.05)
+            time.sleep(.1)
         
         else:
             print("  -> Warning: Skipping audit trail (web_entry_input_box not configured).")
@@ -207,7 +207,7 @@ def run_automation():
             print(f"  -> Unknown selection '{selection}'. Skipping.")
         
         # Small pause between records
-        time.sleep(0.5)
+        time.sleep(.1)
         
         # Log success
         log_success(student)
