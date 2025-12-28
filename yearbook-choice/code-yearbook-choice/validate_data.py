@@ -152,7 +152,6 @@ def validate_data():
             clean_df = pd.DataFrame(cleaned_rows)
             # Reorder columns to put ID first, if possible, but keeping original structure is fine
             clean_df.to_excel(clean_file, index=False)
-            print(f"-> SUCCESS: Cleaned data saved to '{clean_file}'")
         except Exception as e:
             print(f"Critical Error saving cleaned data: {e}")
             sys.exit(1)

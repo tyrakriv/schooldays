@@ -6,7 +6,7 @@ echo ---------------------------------------------------
 echo.
 
 :: Step 1: Validation & Cleanup (Always Run)
-echo --- Step 1: Validating & Cleaning Data ---
+echo --- Step 1: Validating ^& Cleaning Data ---
 python code-yearbook-choice\validate_data.py
 
 :: Check if validation failed (ErrorLevel 1 = Critital, ErrorLevel 0 = OK)

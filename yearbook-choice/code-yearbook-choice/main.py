@@ -38,7 +38,6 @@ def log_runtime_error(student, reason):
     header = not os.path.exists(filename)
     try:
         df.to_csv(filename, mode='a', header=header, index=False)
-        print(f"Logged error for {student['id']}: {reason}")
     except Exception as e:
         print(f"Failed to log runtime error: {e}")
 
@@ -49,14 +48,11 @@ def run_automation():
 
     # User Safety Prompt
     print("--- READY TO START ---")
-    print("1. Open 'School Days Plus'.")
-    print("2. Make sure the window is in the SAME position as when you ran the wizard.")
-    print("3. Do NOT touch the mouse/keyboard once this starts.")
-    print("4. Move your mouse to the corner of the screen to trigger a FAILSAFE abort.")
+    print("1. Make sure the window is in the SAME position as when you ran the wizard.")
+    print("2. Do NOT touch the mouse/keyboard once this starts.")
+    print("3. Move your mouse to the corner of the screen to trigger a FAILSAFE abort.")
     print("----------------------")
-    input("Press Enter to begin...")
     
-    print("Loading Excel data from current folder...")
     # data_handler will find the first .xlsx file automatically
     students = load_and_process_data(None) # Passing None as we updated logic to find file internally
 
