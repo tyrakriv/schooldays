@@ -25,8 +25,8 @@ def get_excel_path(directory="."):
     if not excel_files:
         return None
         
-    if len(excel_files) > 2:
-        print(f"Error: Too many Excel files found ({len(excel_files)}). Maximum allowed is 2.")
+    if len(excel_files) > 1:
+        print(f"Error: Multiple Excel files found ({len(excel_files)}). Maximum allowed is 1.")
         print(f"Files found: {[os.path.basename(f) for f in excel_files]}")
         print("Please remove extra files to ensure we process the correct one.")
         return None
