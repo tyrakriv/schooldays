@@ -5,6 +5,9 @@ package-choice/reports/*
 # Python & System
 __pycache__/
 *.pyc
+
+coordinates.json
+current_session.txt
 .DS_Store
 
 # Virtual Environments

@@ -101,12 +101,11 @@ def validate_data():
              
              # Rule: Multiple rows require valid dates for sorting
              if row_count > 1 and invalid_date_mask.any():
-                 # Reject all rows for this student
-                 for idx, row in student_rows.iterrows():
-                     err_row = row.copy()
-                     err_row['error_reason'] = "Multiple rows with invalid dates"
-                     error_rows.append(err_row)
-                 continue
+                # Reject all rows for this student, but log only one error
+                err_row = student_rows.iloc[0].copy()
+                err_row['error_reason'] = "Multiple rows with invalid dates"
+                error_rows.append(err_row)
+                continue
                  
              # Sort Descending (Newest First)
              student_rows = student_rows.sort_values(by=date_col, ascending=False)
@@ -114,10 +113,9 @@ def validate_data():
         elif row_count > 1:
             # Multiple rows but no date column at all
             print(f"Error: Student {student_id} has duplicates but no Date column.")
-            for idx, row in student_rows.iterrows():
-                 err_row = row.copy()
-                 err_row['error_reason'] = "Duplicate rows without Date column"
-                 error_rows.append(err_row)
+            err_row = student_rows.iloc[0].copy()
+            err_row['error_reason'] = "Duplicate rows without Date column"
+            error_rows.append(err_row)
             continue
 
         # --- Top Row Selection ---
@@ -132,16 +130,15 @@ def validate_data():
                  # Check selection conflict
                  selections = set()
                  for idx, r in same_date_rows.iterrows():
-                     s_val = str(r[selection_col]).lower().strip() if selection_col else ""
-                     selections.add(s_val)
+                    s_val = str(r[selection_col]).lower().strip() if selection_col else ""
+                    selections.add(s_val)
                  
                  if len(selections) > 1:
-                     print(f"Error: Student {student_id} has conflicting selections on same date {top_date}.")
-                     for idx, row in same_date_rows.iterrows():
-                         err_row = row.copy()
-                         err_row['error_reason'] = f"Conflicting selections {selections} on same date"
-                         error_rows.append(err_row)
-                     continue
+                    print(f"Error: Student {student_id} has conflicting selections on same date {top_date}.")
+                    err_row = same_date_rows.iloc[0].copy()
+                    err_row['error_reason'] = f"Conflicting selections {selections} on same date"
+                    error_rows.append(err_row)
+                    continue
 
         # --- Validate Selection ---
         if selection_col:
@@ -157,8 +154,6 @@ def validate_data():
 
     # 4. Save Outputs
     print(f"\nProcessing Complete.")
-    print(f"Cleaned Rows: {len(cleaned_rows)}")
-    print(f"Error Rows: {len(error_rows)}")
 
     # Save Cleaned Data
     # Use code folder path

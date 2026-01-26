@@ -26,9 +26,10 @@ def run_wizard():
 
     # 1.5 Last Name Box (For Validation)
     coords["last_name_box"] = get_coordinate("LAST NAME FIELD (To verify student exists)")
-    coords["last_name_checkbox"] = get_coordinate("LAST NAME CHECKBOX (To allow input)")
-
        
+    # 2. Audit Trail Locations
+    coords["web_entry_input_box"] = get_coordinate("WEB ENTRY INPUT (Where we type 'auto')")
+
     # 3. Option Locations
     print("\nNow we need the locations for the Yearbook selection list.")
     
@@ -38,9 +39,6 @@ def run_wizard():
     # We don't need 'd' if it's default, but good to have if we need to explicitly click it later.
     coords["option_d"] = get_coordinate("OPTION 'D' (The fourth/last item)")
 
-    # 4. Audit Trail Locations
-    coords["web_entry_checkbox"] = get_coordinate("WEB ENTRY CHECKBOX (To allow input)")
-    coords["web_entry_input_box"] = get_coordinate("WEB ENTRY INPUT (Where we type 'auto')")
 
     with open(COORD_FILE, "w") as f:
         json.dump(coords, f, indent=4)
