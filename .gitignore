@@ -1,4 +1,19 @@
+# Reports & Logs
 yearbook-choice/reports/*
-yearbook-choice/code-yearbook-choice/__pycache__/*
+package-choice/reports/*
+
+# Python & System
+__pycache__/
+*.pyc
 .DS_Store
-cleaned_data.xlsx
+
+# Virtual Environments
+venv/
+.venv/
+
+# Configuration (Machine Specific)
+yearbook-choice/code-yearbook-choice/coordinates.json
+package-choice/code-package-choice/coordinates_package.json
+
+# Data (PII protection)
+*.xlsx
