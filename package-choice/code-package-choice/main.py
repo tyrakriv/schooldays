@@ -173,7 +173,7 @@ def run_automation():
         
         # 1. Search Student
         search_student(sid, coords)
-        time.sleep(1.0) # Wait for student to load
+        time.sleep(0.3) # Wait for student to load
 
         # 2. Validate Last Name (Optional)
         if 'last_name_box' in coords and lname:
@@ -214,7 +214,7 @@ def run_automation():
                 choice_key = f"choice_{photo_choice}"
                 if choice_key in coords:
                     pyautogui.click(coords[choice_key]['x'], coords[choice_key]['y'])
-                    time.sleep(0.5)
+                    time.sleep(0.1)
                 else:
                     log_error(sid, lname, "Photo Choice", f"Coordinate for choice '{photo_choice}' not found")
             else:
@@ -255,7 +255,7 @@ def run_automation():
             
             # A. Re-Search Student (to refresh view)
             search_student(sid, coords)
-            time.sleep(1.0) # Wait for student to load
+            time.sleep(0.3) # Wait for student to load
 
             # B. Check the box
             found_pkg = read_field_text(coords.get('quick_package_entry_box'))
@@ -268,7 +268,7 @@ def run_automation():
                 log_error(sid, lname, f"Standard Pkg: {entry_for_validation}", f"VALIDATION FAILED (Found: '{found_pkg}' in quick package entry box when it should be {entry_for_validation})")
                 return False
 
-        time.sleep(0.5) # Pause between students
+        time.sleep(0.1) # Pause between students
 
     print("Automation Complete!")
     return True
@@ -279,7 +279,7 @@ def search_student(sid, coords):
         pyautogui.doubleClick() 
         pyautogui.typewrite(sid)
         pyautogui.press('enter')
-        time.sleep(0.5) # Wait for load
+        time.sleep(0.1) # Wait for load
 
 def read_field_text(coord):
     """
@@ -291,7 +291,7 @@ def read_field_text(coord):
     pyautogui.click(coord['x'], coord['y'])
 
     pyautogui.tripleClick()
-    time.sleep(0.5)
+    time.sleep(0.1)
     
     # Clear clipboard first
     pyperclip.copy("")
