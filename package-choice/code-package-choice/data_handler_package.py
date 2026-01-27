@@ -126,12 +126,16 @@ def load_and_process_data(excel_path=None):
                     qty = 1 # Default or Error? Assuming default 1 if parse fails, or maybe log?
             
             # 2. Get Photo Choice
-            photo_choice = 'a' # Default
+            photo_choice = None # No longer defaulting to 'a'
             if choice_col and pd.notna(row[choice_col]):
                 photo_choice = str(row[choice_col]).strip().lower()
             
+            # Use a placeholder for grouping if None
+            # logic: if photo_choice is None, we still process it (likely a Group Print only order)
+            group_key = photo_choice if photo_choice else "NO_SELECTION" 
+
             # Duplicate Check Key
-            dup_key = (photo_choice, str(raw_product).strip().lower())
+            dup_key = (group_key, str(raw_product).strip().lower())
             seen_entries[dup_key] += 1
             if seen_entries[dup_key] > 1:
                 student_errors.append({
@@ -147,14 +151,16 @@ def load_and_process_data(excel_path=None):
                 continue
             
             # Initialize choice group if new
-            if photo_choice not in choices_map:
-                choices_map[photo_choice] = {
+            if group_key not in choices_map:
+                choices_map[group_key] = {
+                    'real_choice': photo_choice, # processing key
                     'standard_string': "", 
                     'others': [], 
-                    'has_personal': False
+                    'has_personal': False,
+                    'group_print_types': set()
                 }
             
-            grp = choices_map[photo_choice]
+            grp = choices_map[group_key]
 
             if p_type == 'standard':
                 # Handle Quantity for standard -> Repeat string
@@ -172,6 +178,16 @@ def load_and_process_data(excel_path=None):
                     })
                     continue
                 
+                # Check Group Print Limit (>2 different types)
+                if p_type == 'group':
+                    grp['group_print_types'].add(code)
+                    if len(grp['group_print_types']) > 2:
+                        student_errors.append({
+                           'raw_product': raw_product,
+                           'reason': "More than 2 different Group Print types selected"
+                        })
+                        continue
+
                 # Add to 'others' list
                 grp['others'].append({
                     'code': code,
@@ -182,12 +198,12 @@ def load_and_process_data(excel_path=None):
             elif p_type == 'unknown':
                 student_errors.append({
                     'raw_product': raw_product,
-                    'reason': "Unknown Product Code"
+                    'reason': "Unknown Product Code (Not 5x7 or 8x10 Group, or recognized pkg)"
                 })
 
         # Post-process: Assign target boxes for 'others' (Group logic)
         final_choices = []
-        for choice, data in choices_map.items():
+        for key, data in choices_map.items():
             
             # Process 'others' to resolve Group Print box location
             processed_others = []
@@ -209,7 +225,7 @@ def load_and_process_data(excel_path=None):
                 processed_others.append(item)
             
             final_choices.append({
-                'photo_choice': choice,
+                'photo_choice': data['real_choice'], # Can be None
                 'standard_string': data['standard_string'],
                 'others': processed_others
             })

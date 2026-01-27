@@ -106,31 +106,7 @@ def search_student(sid, coords):
         pyautogui.doubleClick() 
         pyautogui.typewrite(sid)
         pyautogui.press('enter')
-        time.sleep(0.5) # Wait for load
-
-def read_field_text(coord):
-    """
-    Clicks field, Selects All, Copies to clipboard, returns text.
-    """
-    if not coord: return ""
-    
-    # Click and focus
-    pyautogui.click(coord['x'], coord['y'])
-    
-    # Select All (Cmd+A for Mac, Ctrl+A for Windows - user is on Mac but might be RDP?)
-    # User OS is Mac. Standard is Command+A (Meta+A).
-    # But often RDP/VMs use Ctrl. I'll stick to what they used before or safer: Triple Click.
-    pyautogui.tripleClick()
-    time.sleep(0.05)
-    
-    # Clear clipboard first
-    pyperclip.copy("")
-    
-    # Copy
-    pyautogui.hotkey('ctrl', 'c') 
-    time.sleep(0.1)
-    
-    return pyperclip.paste().strip()
+        time.sleep(1.0) # Wait for add
 
 def run_automation():
     coords = load_coordinates()
@@ -176,13 +152,14 @@ def run_automation():
         
         # 1. Search Student
         search_student(sid, coords)
-        
+        time.sleep(1.0) # Wait for student to load
+
         # 2. Validate Last Name (Optional)
         if 'last_name_box' in coords and lname:
             pyautogui.click(coords['last_name_box']['x'], coords['last_name_box']['y'])
             pyautogui.tripleClick()
             pyautogui.hotkey('ctrl', 'c')
-            time.sleep(0.05)
+            time.sleep(0.1)
             found_name = pyperclip.paste().strip()
             
             if found_name.lower() != lname.lower():
@@ -199,15 +176,19 @@ def run_automation():
             standard_string = group['standard_string']
             other_items = group['others']
             
-            print(f"  -> Processing Choice '{photo_choice}'...")
+            print(f"  -> Processing Choice: '{photo_choice if photo_choice else 'NONE (Skip Photo Choice)'}'")
 
             # A. Click Photo Choice Letter (Once per group)
-            choice_key = f"choice_{photo_choice}"
-            if choice_key in coords:
-                pyautogui.click(coords[choice_key]['x'], coords[choice_key]['y'])
-                time.sleep(0.1)
+            if photo_choice:
+                choice_key = f"choice_{photo_choice}"
+                if choice_key in coords:
+                    pyautogui.click(coords[choice_key]['x'], coords[choice_key]['y'])
+                    time.sleep(0.5)
+                else:
+                    print(f"  -> Warning: Coordinate for choice '{photo_choice}' not found.")
             else:
-                print(f"  -> Warning: Coordinate for choice '{photo_choice}' not found.")
+                 # If None, we assume we skip this or default is acceptable
+                 pass
                 
             # B. Input Standard Packages (The combined string, e.g. "xxyy")
             if standard_string:
@@ -231,10 +212,10 @@ def run_automation():
                         # Special interaction
                         if 'touchup_dropdown' in coords:
                             pyautogui.click(coords['touchup_dropdown']['x'], coords['touchup_dropdown']['y'])
-                            time.sleep(0.2)
+                            time.sleep(0.8)
                             if 'touchup_pending_option' in coords:
                                 pyautogui.click(coords['touchup_pending_option']['x'], coords['touchup_pending_option']['y'])
-                                time.sleep(0.1)
+                                time.sleep(0.5)
                     
                     elif target_box_name in coords:
                          # click_and_type handles double click + enter
@@ -250,7 +231,8 @@ def run_automation():
             
             # A. Re-Search Student (to refresh view)
             search_student(sid, coords)
-            
+            time.sleep(1.0) # Wait for student to load
+
             # B. Check the box
             found_pkg = read_field_text(coords.get('quick_package_entry_box'))
             
@@ -265,10 +247,44 @@ def run_automation():
                 print("Aborting to prevent errors.")
                 return False
 
-        time.sleep(0.1) # Pause between students
+        time.sleep(0.5) # Pause between students
 
     print("Automation Complete!")
     return True
+
+def search_student(sid, coords):
+    if 'search_box' in coords:
+        pyautogui.click(coords['search_box']['x'], coords['search_box']['y'])
+        pyautogui.doubleClick() 
+        pyautogui.typewrite(sid)
+        pyautogui.press('enter')
+        time.sleep(0.5) # Wait for load
+
+def read_field_text(coord):
+    """
+    Clicks field, Selects All, Copies to clipboard, returns text.
+    """
+    if not coord: return ""
+    
+    # Click and focus
+    pyautogui.click(coord['x'], coord['y'])
+    
+    # Select All (Cmd+A for Mac, Ctrl+A for Windows - user is on Mac but might be RDP?)
+    # User OS is Mac. Standard is Command+A (Meta+A).
+    # But often RDP/VMs use Ctrl. I'll stick to what they used before or safer: Triple Click.
+    # UPDATE: User requests slowing down, triple click might be too fast or unreliable? 
+    # Sticking to doubleClick() as standard inputs usually select all on double click.
+    pyautogui.doubleClick()
+    time.sleep(0.5)
+    
+    # Clear clipboard first
+    pyperclip.copy("")
+    
+    # Copy
+    pyautogui.hotkey('ctrl', 'c') 
+    time.sleep(0.1)
+    
+    return pyperclip.paste().strip()
 
 if __name__ == "__main__":
     import sys
