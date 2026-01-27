@@ -42,14 +42,6 @@ def click_and_type(coord, text):
     if not coord:
         return
     pyautogui.click(coord['x'], coord['y'])
-    time.sleep(0.05)
-    
-    # Select all to ensure clear or just click? 
-    # Usually safer to just type for "Quick Entry" boxes if they clear themselves, 
-    # but if they don't, we might append.
-    # User screenshot shows "Quick Package Entry" at bottom. It likely clears after Enter.
-    # But "Class Pkg" might differ.
-    # I'll double click to be safe if it's text.
     pyautogui.doubleClick() 
     time.sleep(0.05)
     

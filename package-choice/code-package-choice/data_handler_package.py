@@ -157,7 +157,8 @@ def load_and_process_data(excel_path=None):
                     'standard_string': "", 
                     'others': [], 
                     'has_personal': False,
-                    'group_print_types': set()
+                    'group_print_types': set(),
+                    'group_codes': ""
                 }
             
             grp = choices_map[group_key]
@@ -170,13 +171,15 @@ def load_and_process_data(excel_path=None):
                 grp['has_personal'] = True
             
             elif p_type in ['group', 'cd', 'touchup']:
-                # Quantity Check: Must be 1
-                if qty > 1:
-                    student_errors.append({
+                # Quantity Check: Must be 1 for CD/Touchup usually? 
+                # User specifically asked for Group Print quantity support (e.g. 2x 5x7 -> mm).
+                
+                if p_type != 'group' and qty > 1:
+                     student_errors.append({
                         'raw_product': raw_product,
-                        'reason': f"Quantity {qty} not allowed for non-standard items"
+                        'reason': f"Quantity {qty} not allowed for {p_type}"
                     })
-                    continue
+                     continue
                 
                 # Check Group Print Limit (>2 different types)
                 if p_type == 'group':
@@ -187,8 +190,22 @@ def load_and_process_data(excel_path=None):
                            'reason': "More than 2 different Group Print types selected"
                         })
                         continue
+                    
+                    # Accumulate group code
+                    # Handle Quantity (e.g. 2x -> 'mm')
+                    grp['group_codes'] += (code * qty)
+                    continue # Do NOT add to 'others' yet, we will add combined at end
 
-                # Add to 'others' list
+                # Add to 'others' list (CD, Touchup)
+                # Check for duplicates (ONLY 1 CD or Touchup allowed per choice group)
+                existing_type = next((x for x in grp['others'] if x['type'] == p_type), None)
+                if existing_type:
+                     student_errors.append({
+                        'raw_product': raw_product,
+                        'reason': f"Multiple {p_type.upper()} items selected (Only 1 allowed)"
+                    })
+                     continue
+
                 grp['others'].append({
                     'code': code,
                     'type': p_type,
@@ -205,6 +222,14 @@ def load_and_process_data(excel_path=None):
         final_choices = []
         for key, data in choices_map.items():
             
+            # If we have accumulated group codes, add them as a single item now
+            if data.get('group_codes'):
+                data['others'].append({
+                    'code': data['group_codes'],
+                    'type': 'group',
+                    'raw_product': 'Combined Group Prints'
+                })
+
             # Process 'others' to resolve Group Print box location
             processed_others = []
             for item in data['others']:
