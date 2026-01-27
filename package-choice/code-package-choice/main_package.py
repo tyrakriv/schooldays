@@ -156,11 +156,10 @@ def run_automation():
         choice_groups = student.get('choices_groups', [])
         errors = student.get('errors', [])
         
-        print(f"Processing Student ID: {sid} ({len(choice_groups)} choice groups, {len(errors)} previous errors)")
+        print(f"Processing: {sid} - {lname}")
         
         # 0. Log pre-existing errors (from data_handler logic)
         for err in errors:
-            print(f"  -> Skipping invalid item: {err['raw_product']} ({err['reason']})")
             log_error(sid, lname, err['raw_product'], err['reason'])
             
         if not choice_groups:
@@ -179,8 +178,15 @@ def run_automation():
             time.sleep(0.1)
             found_name = pyperclip.paste().strip()
             
-            if found_name.lower() != lname.lower():
-                print(f"  -> NAME MISMATCH: Found '{found_name}', Expected '{lname}'. Logging error.")
+            # Handle hyphenated names (App might only select first part of "Walsh-Nation")
+            expected_parts = lname.lower().split('-')
+            first_part = expected_parts[0].strip()
+            
+            # Allow match if found name is exactly the full name OR just the first part
+            is_match = (found_name.lower() == lname.lower()) or (found_name.lower() == first_part)
+            
+            if not is_match:
+                print(f"  -> NAME MISMATCH: Found '{found_name}', Expected '{lname}' (or '{first_part}'). Logging error.")
                 log_error(sid, lname, "ALL", f"Name Mismatch (Found: {found_name})")
                 continue # Skip this student
 
@@ -193,7 +199,7 @@ def run_automation():
             standard_string = group['standard_string']
             other_items = group['others']
             
-            print(f"  -> Processing Choice: '{photo_choice if photo_choice else 'NONE (Skip Photo Choice)'}'")
+            # Process choice group silently
 
             # A. Click Photo Choice Letter (Once per group)
             if photo_choice:
@@ -202,14 +208,13 @@ def run_automation():
                     pyautogui.click(coords[choice_key]['x'], coords[choice_key]['y'])
                     time.sleep(0.5)
                 else:
-                    print(f"  -> Warning: Coordinate for choice '{photo_choice}' not found.")
+                    log_error(sid, lname, "Photo Choice", f"Coordinate for choice '{photo_choice}' not found")
             else:
                  # If None, we assume we skip this or default is acceptable
                  pass
                 
             # B. Input Standard Packages (The combined string, e.g. "xxyy")
             if standard_string:
-                print(f"     -> Entering Standard Packages: {standard_string}")
                 if 'quick_package_entry_box' in coords:
                     click_and_type(coords['quick_package_entry_box'], standard_string)
                     
@@ -217,7 +222,7 @@ def run_automation():
                     if not validated_first_student:
                         entry_for_validation = standard_string
                 else:
-                    print("     -> Error: 'quick_package_entry_box' coordinate missing.")
+                    log_error(sid, lname, "Standard Package", "'quick_package_entry_box' coordinate missing")
             
             # C. Input Other Items (Group, CD, Touchup) - processed individually
             for item in other_items:
@@ -229,18 +234,16 @@ def run_automation():
                         if 'touchup_dropdown' in coords:
                             click_and_type(coords['touchup_dropdown'], "Pending")
                         else:
-                            print("     -> Error: 'touchup_dropdown' coordinate missing.")
+                            log_error(sid, lname, "Touchup", "'touchup_dropdown' coordinate missing")
 
                     elif target_box_name in coords:
                          click_and_type(coords[target_box_name], p_code)
                     else:
-                        print(f"     -> Error: Coordinate '{target_box_name}' not defined.")
                         log_error(sid, lname, item['raw_product'], f"Missing Coordinate: {target_box_name}")
 
         # 4. Perform Validation Check (Only for the first successful standard entry)
         if not validated_first_student and entry_for_validation:
-            print("\n*** PERFORMING FIRST-RUN VALIDATION ***")
-            print(f"Verifying package entry '{entry_for_validation}' for Student {sid}...")
+            print(f"\n*** VALIDATING FIRST ENTRY: {entry_for_validation} ***")
             
             # A. Re-Search Student (to refresh view)
             search_student(sid, coords)
@@ -249,15 +252,11 @@ def run_automation():
             # B. Check the box
             found_pkg = read_field_text(coords.get('quick_package_entry_box'))
             
-            print(f"Expected: '{entry_for_validation}'")
-            print(f"Found:    '{found_pkg}'")
-            
             if found_pkg.lower() == entry_for_validation.lower():
-                print("VALIDATION SUCCESSFUL! Continuing automation...")
+                print("✓ Validation passed")
                 validated_first_student = True
             else:
-                print("VALIDATION FAILED! The value in the box does not match what we typed.")
-                print("Aborting to prevent errors.")
+                print(f"✗ VALIDATION FAILED: Expected '{entry_for_validation}', Found '{found_pkg}'")
                 log_error(sid, lname, f"Standard Pkg: {entry_for_validation}", f"VALIDATION FAILED (Found: '{found_pkg}' in quick package entry box when it should be {entry_for_validation})")
                 return False
 

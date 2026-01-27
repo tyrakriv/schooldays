@@ -103,9 +103,7 @@ def verify_field_is_editable(entry, field_name):
     if not checked:
         print(f"{field_name} Field is unchecked. Please fix and restart the program.")
         return False
-    else:
-        print(f"{field_name} is checked")
-        return True
+    return True
 
 def run_automation():
     coords = load_coordinates()
@@ -169,13 +167,21 @@ def run_automation():
                 continue
                 
             excel_last_name = student.get('last_name', '')
-            if excel_last_name and last_name.lower() != excel_last_name.lower():
-                 print(f"  -> VALIDATION FAILED: Last Name Mismatch! Found: '{last_name}', Expected: '{excel_last_name}'")
-                 log_runtime_error(student, f"Last Name Mismatch (Found: {last_name}, Expected: {excel_last_name})")
-                 continue
+            if excel_last_name:
+                # Handle hyphenated names (App might only select first part)
+                expected_parts = excel_last_name.lower().split('-')
+                first_part = expected_parts[0].strip()
+                
+                # Allow match if found name is exactly the full name OR just the first part
+                is_match = (last_name.lower() == excel_last_name.lower()) or (last_name.lower() == first_part)
+                
+                if not is_match:
+                    print(f"  -> NAME MISMATCH: Found '{last_name}', Expected '{excel_last_name}' (or '{first_part}')")
+                    log_runtime_error(student, f"Last Name Mismatch (Found: {last_name}, Expected: {excel_last_name})")
+                    continue
             
         else:
-             print("  -> Warning: Skipping validation (last_name_box not configured).")
+             pass  # Validation skipped if not configured
  
         # 2. Audit Trail (Check "Web Entry" and type "auto")
         if 'web_entry_input_box' in coords:
@@ -192,7 +198,7 @@ def run_automation():
             time.sleep(.1)
         
         else:
-            print("  -> Warning: Skipping audit trail (web_entry_input_box not configured).")
+            pass  # Audit trail skipped if not configured
         
         # 3. Select Option
         if selection == 'd':
