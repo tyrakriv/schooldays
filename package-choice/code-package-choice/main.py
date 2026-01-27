@@ -159,6 +159,8 @@ def run_automation():
         print(f"Processing: {sid} - {lname}")
         
         # 0. Log pre-existing errors (from data_handler logic)
+        if errors:
+            print(f"  ⚠️  {len(errors)} error(s) logged for this student")
         for err in errors:
             log_error(sid, lname, err['raw_product'], err['reason'])
             
@@ -178,15 +180,18 @@ def run_automation():
             time.sleep(0.1)
             found_name = pyperclip.paste().strip()
             
-            # Handle hyphenated names (App might only select first part of "Walsh-Nation")
+            # Handle hyphenated names (App might select "Walsh-" with trailing hyphen)
             expected_parts = lname.lower().split('-')
-            first_part = expected_parts[0].strip()
+            first_part = expected_parts[0].strip().lower()
+            first_part_with_hyphen = first_part + '-'
             
-            # Allow match if found name is exactly the full name OR just the first part
-            is_match = (found_name.lower() == lname.lower()) or (found_name.lower() == first_part)
+            # Allow match if found name is: full name, first part only, OR first part with hyphen
+            is_match = (found_name.lower() == lname.lower()) or \
+                       (found_name.lower() == first_part) or \
+                       (found_name.lower() == first_part_with_hyphen)
             
             if not is_match:
-                print(f"  -> NAME MISMATCH: Found '{found_name}', Expected '{lname}' (or '{first_part}'). Logging error.")
+                print(f"  -> NAME MISMATCH: Found '{found_name}', Expected '{lname}'")
                 log_error(sid, lname, "ALL", f"Name Mismatch (Found: {found_name})")
                 continue # Skip this student
 

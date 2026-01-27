@@ -166,17 +166,19 @@ def run_automation():
                 log_runtime_error(student, "Student ID not found (Empty Last Name)")
                 continue
                 
-            excel_last_name = student.get('last_name', '')
             if excel_last_name:
-                # Handle hyphenated names (App might only select first part)
+                # Handle hyphenated names (App might select "Walsh-" with trailing hyphen)
                 expected_parts = excel_last_name.lower().split('-')
-                first_part = expected_parts[0].strip()
+                first_part = expected_parts[0].strip().lower()
+                first_part_with_hyphen = first_part + '-'
                 
-                # Allow match if found name is exactly the full name OR just the first part
-                is_match = (last_name.lower() == excel_last_name.lower()) or (last_name.lower() == first_part)
+                # Allow match if found name is: full name, first part only, OR first part with hyphen
+                is_match = (last_name.lower() == excel_last_name.lower()) or \
+                           (last_name.lower() == first_part) or \
+                           (last_name.lower() == first_part_with_hyphen)
                 
                 if not is_match:
-                    print(f"  -> NAME MISMATCH: Found '{last_name}', Expected '{excel_last_name}' (or '{first_part}')")
+                    print(f"  -> NAME MISMATCH: Found '{last_name}', Expected '{excel_last_name}'")
                     log_runtime_error(student, f"Last Name Mismatch (Found: {last_name}, Expected: {excel_last_name})")
                     continue
             

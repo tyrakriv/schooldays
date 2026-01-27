@@ -35,7 +35,7 @@ python3 code-package-choice/config_wizard_package.py
 # Step 3: Automation
 echo ""
 echo "--- Step 3: Running Automation ---"
-python3 code-package-choice/main_package.py
+python3 code-package-choice/main.py
 if [ $? -eq 0 ]; then
     echo ""
     echo "***************************************************"

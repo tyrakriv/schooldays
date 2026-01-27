@@ -31,7 +31,7 @@ python code-package-choice\config_wizard_package.py
 :: Step 3: Automation
 echo.
 echo --- Step 3: Running Automation ---
-python code-package-choice\main_package.py
+python code-package-choice\main.py
 
 if %errorlevel% equ 0 (
     echo.
