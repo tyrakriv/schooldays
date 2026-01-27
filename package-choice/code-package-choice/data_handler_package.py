@@ -19,6 +19,10 @@ def map_product_to_code(product_name):
     if p in ["no photo package wanted", ""]:
         return None, 'ignore', p
 
+    # Explicit Error/Unknown for known invalid inputs
+    if "lost order" in p or "invalid" in p:
+        return None, 'unknown', p
+
     # Standard Packages (Quick Package Entry)
     # We use 'in' to handle messy inputs like "3x5â€™s Package"
     if "mini wallet" in p: return "m", 'standard', p # Check mini before wallet
@@ -130,6 +134,15 @@ def load_and_process_data(excel_path=None):
             if choice_col and pd.notna(row[choice_col]):
                 photo_choice = str(row[choice_col]).strip().lower()
             
+            # Validate Photo Choice - Strict check for A-D
+            if photo_choice:
+                if photo_choice not in ['a', 'b', 'c', 'd']:
+                     student_errors.append({
+                        'raw_product': raw_product,
+                        'reason': f"Invalid Photo Choice: '{photo_choice}' (Must be A, B, C, or D)"
+                    })
+                     continue
+            
             # Use a placeholder for grouping if None
             # logic: if photo_choice is None, we still process it (likely a Group Print only order)
             group_key = photo_choice if photo_choice else "NO_SELECTION" 
@@ -137,12 +150,6 @@ def load_and_process_data(excel_path=None):
             # Duplicate Check Key
             dup_key = (group_key, str(raw_product).strip().lower())
             seen_entries[dup_key] += 1
-            if seen_entries[dup_key] > 1:
-                student_errors.append({
-                    'raw_product': raw_product,
-                    'reason': "Duplicate Line detected in Excel"
-                })
-                continue
 
             # Process Product
             code, p_type, raw_name = map_product_to_code(raw_product)
