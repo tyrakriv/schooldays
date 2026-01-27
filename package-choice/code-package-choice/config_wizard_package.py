@@ -49,10 +49,10 @@ def run_wizard():
     coords["cd_box"] = get_coordinate("CD INPUT BOX (For 'All 4 Digital Portraits')")
     
     # Touchup
-    coords["touchup_dropdown"] = get_coordinate("TOUCHUP DROPDOWN MENU")
+    # User requested to treat this as a standard input box and type "Pending"
+    coords["touchup_dropdown"] = get_coordinate("TOUCHUP BOX (Will type 'Pending')")
     
-    print("For the next step, please click the dropdown so the options are visible before pressing Enter.")
-    coords["touchup_pending_option"] = get_coordinate("TOUCHUP 'PENDING' OPTION")
+    # coords["touchup_pending_option"] = get_coordinate("TOUCHUP 'PENDING' OPTION") # Removed per request
 
     with open(COORD_FILE, "w") as f:
         json.dump(coords, f, indent=4)

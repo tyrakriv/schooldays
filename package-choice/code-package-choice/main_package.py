@@ -42,7 +42,7 @@ def click_and_type(coord, text):
     if not coord:
         return
     pyautogui.click(coord['x'], coord['y'])
-    pyautogui.doubleClick() 
+    pyautogui.tripleClick()
     time.sleep(0.05)
     
     pyautogui.typewrite(str(text))
@@ -116,6 +116,34 @@ def run_automation():
         return False
         
     print(f"Loaded {len(students)} students to process.")
+    
+    # Generate Verification Excel
+    print("Generating Verification Report...")
+    reports_dir = "reports"
+    if not os.path.exists(reports_dir):
+        os.makedirs(reports_dir)
+        
+    verif_data = []
+    for s in students:
+        sid = s['id']
+        lname = s['last_name']
+        for grp in s.get('choices_groups', []):
+            # Flatten for report
+            other_str = "; ".join([f"{x['type']}:{x['code']}" for x in grp['others']])
+            verif_data.append({
+                'Student ID': sid,
+                'Last Name': lname,
+                'Photo Choice': grp['photo_choice'] if grp['photo_choice'] else "(NONE)",
+                'Standard Pkg String': grp['standard_string'],
+                'Other Items': other_str
+            })
+            
+    if verif_data:
+        v_df = pd.DataFrame(verif_data)
+        v_file = os.path.join(reports_dir, f"students_package_choices_verification-{SESSION_TIMESTAMP}.xlsx")
+        v_df.to_excel(v_file, index=False)
+        print(f"saved verification file to: {v_file}")
+
     print("Starting in 3 seconds...")
     time.sleep(3)
     
@@ -197,14 +225,11 @@ def run_automation():
                 
                 if target_box_name:
                     if target_box_name == 'touchup':
-                        # Special interaction
                         if 'touchup_dropdown' in coords:
-                            pyautogui.click(coords['touchup_dropdown']['x'], coords['touchup_dropdown']['y'])
-                            time.sleep(0.8)
-                            if 'touchup_pending_option' in coords:
-                                pyautogui.click(coords['touchup_pending_option']['x'], coords['touchup_pending_option']['y'])
-                                time.sleep(0.5)
-                    
+                            click_and_type(coords['touchup_dropdown'], "Pending")
+                        else:
+                            print("     -> Error: 'touchup_dropdown' coordinate missing.")
+
                     elif target_box_name in coords:
                          click_and_type(coords[target_box_name], p_code)
                     else:
