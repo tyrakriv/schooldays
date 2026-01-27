@@ -130,7 +130,7 @@ def run_automation():
         lname = s['last_name']
         for grp in s.get('choices_groups', []):
             # Flatten for report
-            other_str = "; ".join([f"{x['type']}:{x['code']}" for x in grp['others']])
+            other_str = "; ".join([f"{x['raw_product']} (Input '{x['code']}')" for x in grp['others']])
             verif_data.append({
                 'Student ID': sid,
                 'Last Name': lname,
