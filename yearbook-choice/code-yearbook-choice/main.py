@@ -59,7 +59,7 @@ def log_success(student):
     reports_dir = "reports"
     if not os.path.exists(reports_dir):
         os.makedirs(reports_dir)
-    filename = os.path.join(reports_dir, f"run-processed-{SESSION_TIMESTAMP}.csv")
+    filename = os.path.join(reports_dir, f"yearbook_choice_processed_data{SESSION_TIMESTAMP}.csv")
     
     # Create ordered dict/df
     df = pd.DataFrame([student])

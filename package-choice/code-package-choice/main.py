@@ -57,54 +57,6 @@ def run_automation():
     
     print("--- READY TO START PACKAGE ENTRY ---")
     print("1. Ensure School Days app is open and ready.")
-    print("2. EMERGENCY STOP: Slam mouse quickly to any corner of the screen.")
-    print("3. OR click on this Terminal window and press Ctrl+C.")
-    print("------------------------------------")
-    
-    students = load_and_process_data(None) # Auto-finds Excel
-
-    if not students:
-        print("No student data found or processed.")
-        return False
-        
-    print(f"Loaded {len(students)} students to process.")
-    print("Starting in 3 seconds...")
-    time.sleep(3)
-    
-    for student in students:
-        sid = student['id']
-        lname = student['last_name']
-        choice_groups = student.get('choices_groups', [])
-        errors = student.get('errors', [])
-        
-        print(f"Processing Student ID: {sid} ({len(choice_groups)} choice groups, {len(errors)} previous errors)")
-        
-        # 0. Log pre-existing errors (from data_handler logic)
-        for err in errors:
-            print(f"  -> Skipping invalid item: {err['raw_product']} ({err['reason']})")
-            log_error(sid, lname, err['raw_product'], err['reason'])
-            
-        if not choice_groups:
-            # If no valid groups to process, skip automation for this student
-            continue
-        
-def search_student(sid, coords):
-    if 'search_box' in coords:
-        pyautogui.click(coords['search_box']['x'], coords['search_box']['y'])
-        pyautogui.doubleClick() 
-        pyautogui.typewrite(sid)
-        pyautogui.press('enter')
-        time.sleep(1.0) # Wait for add
-
-def run_automation():
-    coords = load_coordinates()
-    if not coords:
-        return False
-
-    pyautogui.FAILSAFE = True # Enabled by default, but making it explicit
-    
-    print("--- READY TO START PACKAGE ENTRY ---")
-    print("1. Ensure School Days app is open and ready.")
     print("2. IMPORTANT: Manually CHECK all input boxes (like Touchup) so they are editable!")
     print("3. EMERGENCY STOP: Slam mouse quickly to any corner of the screen.")
     print("4. OR click on this Terminal window and press Ctrl+C.")
@@ -119,7 +71,7 @@ def run_automation():
     print(f"Loaded {len(students)} students to process.")
     
     # Generate Verification Excel
-    print("Generating Verification Report...")
+    print("Generating Processed Student Data Report...")
     reports_dir = "reports"
     if not os.path.exists(reports_dir):
         os.makedirs(reports_dir)
@@ -129,24 +81,55 @@ def run_automation():
         sid = s['id']
         lname = s['last_name']
         for grp in s.get('choices_groups', []):
-            # Flatten for report - exclude error items like "Lost Order Form"
-            valid_others = [x for x in grp['others'] 
-                          if 'lost order' not in x['raw_product'].lower() 
-                          and 'invalid' not in x['raw_product'].lower()]
-            other_str = "; ".join([f"{x['raw_product']} (Input '{x['code']}')" for x in valid_others])
+            # Organize items by target box
+            quick_pkg = grp['standard_string']
+            cd_value = ""
+            touchup_value = ""
+            class_pix = ""
+            class_pix_no_pkg = ""
+            
+            # Process other items and group by target box
+            for item in grp['others']:
+                # Skip error items
+                if 'lost order' in item['raw_product'].lower() or 'invalid' in item['raw_product'].lower():
+                    continue
+                    
+                target_box = item.get('target_box', '')
+                code = item['code']
+                
+                if target_box == 'cd_box':
+                    cd_value = code
+                elif target_box == 'touchup':
+                    touchup_value = "Pending"  # Always "Pending" for touchup
+                elif target_box == 'class_pkg_box':
+                    # Append to class_pix (may have multiple group prints)
+                    if class_pix:
+                        class_pix += ", " + code
+                    else:
+                        class_pix = code
+                elif target_box == 'class_pix_no_pkg_box':
+                    # Append to class_pix_no_pkg
+                    if class_pix_no_pkg:
+                        class_pix_no_pkg += ", " + code
+                    else:
+                        class_pix_no_pkg = code
+            
             verif_data.append({
                 'Student ID': sid,
                 'Last Name': lname,
                 'Photo Choice': grp['photo_choice'] if grp['photo_choice'] else "(NONE)",
-                'Standard Pkg String': grp['standard_string'],
-                'Other Items': other_str
+                'Quick Package Entry': quick_pkg,
+                'CD': cd_value,
+                'Touchup': touchup_value,
+                'Class Pix': class_pix,
+                'Class Pix No Pkg': class_pix_no_pkg
             })
             
     if verif_data:
         v_df = pd.DataFrame(verif_data)
-        v_file = os.path.join(reports_dir, f"students_package_choices_verification-{SESSION_TIMESTAMP}.xlsx")
+        v_file = os.path.join(reports_dir, f"package_choices_processed_data-{SESSION_TIMESTAMP}.xlsx")
         v_df.to_excel(v_file, index=False)
-        print(f"saved verification file to: {v_file}")
+        print(f"saved processed data file to: {v_file}")
 
     print("Starting in 3 seconds...")
     time.sleep(3)
@@ -302,11 +285,18 @@ def read_field_text(coord):
     
     return pyperclip.paste().strip()
 
+import sys
+
 if __name__ == "__main__":
-    import sys
     try:
-        run_automation()
+        if not run_automation():
+            sys.exit(1)
+    except pyautogui.FailSafeException:
+        print("\n[EMERGENCY STOP] Failsafe triggered by moving mouse to corner.")
+        sys.exit(1)
     except KeyboardInterrupt:
-        print("\nABORTED BY USER.")
+        print("\n[ABORTED] Stopped by user (Ctrl+C).")
+        sys.exit(1)
     except Exception as e:
-        print(f"\nCRITICAL ERROR: {e}")
+        print(f"\n[CRITICAL ERROR] {e}")
+        sys.exit(1)

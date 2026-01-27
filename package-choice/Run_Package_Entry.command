@@ -37,13 +37,22 @@ echo ""
 echo "--- Step 3: Running Automation ---"
 python3 code-package-choice/main.py
 if [ $? -eq 0 ]; then
+    sleep 1
     echo ""
-    echo "***************************************************"
-    echo "      AUTOMATION COMPLETED SUCCESSFULLY!"
-    echo "***************************************************"
-    read -p "Press Enter to close..."
+    echo "---------------------------------------------------"
+    echo "Done! Press [ENTER] to close this window."
+    read 
+    osascript -e 'tell application "Terminal" to close first window' & 
+    exit
 else
+    sleep 1
     echo ""
-    echo "[ABORTED] Automation stopped with errors or was cancelled."
-    read -p "Press Enter to close..."
+    echo "---------------------------------------------------"
+    echo "[STOPPED] The process was stopped or encountered an error."
+    echo "Check the messages above for details."
+    echo ""
+    echo "Press [ENTER] to close this window."
+    read
+    osascript -e 'tell application "Terminal" to close first window' & 
+    exit
 fi

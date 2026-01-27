@@ -28,19 +28,22 @@ def map_product_to_code(product_name):
     if "mini wallet" in p: return "m", 'standard', p # Check mini before wallet
     if "wallets" in p or "wallet prints" in p: return "w", 'standard', p
     
-    # Group Prints Checking First to avoid confusion with standards
-    if "group print" in p:
-        if "5" in p and "7" in p: # Matches "5â€ x 7â€ ... Group Print"
-            return "m", 'group', p
-        elif "8" in p and "10" in p: # Matches "8â€ x 10â€ ... Group Print"
+    # Dimensional Products (8x10, 5x7, 3x5)
+    # Check 8x10
+    if ("8" in p and "10" in p) or "8x10" in p or "8 x 10" in p:
+        if "group print" in p: 
             return "l", 'group', p
-        else:
-            return None, 'unknown', p # 3x5 group print dropped
+        return "t", 'standard', p
+        
+    # Check 5x7
+    if ("5" in p and "7" in p) or "5x7" in p or "5 x 7" in p:
+        if "group print" in p:
+            return "m", 'group', p
+        return "s", 'standard', p
 
-    # Now valid standards that might overlap numbers
-    if "3x5" in p or "3 x 5" in p: return "f", 'standard', p
-    if "5x7" in p or "5 x 7" in p: return "s", 'standard', p
-    if "8x10" in p or "8 x 10" in p: return "t", 'standard', p
+    # Check 3x5
+    if ("3" in p and "5" in p) or "3x5" in p or "3 x 5" in p:
+        return "f", 'standard', p # 3x5 group print dropped (always standard 'f')
     
     if "basic" in p: return "b", 'standard', p
     if "classic" in p: return "c", 'standard', p
@@ -87,6 +90,7 @@ def load_and_process_data(excel_path=None):
     product_col = find_column_robust(df, ["product name", "package choice", "description"])
     qty_col = find_column_robust(df, ["quantity", "qty"])
     last_name_col = find_column_robust(df, ["last name", "student last name"])
+    group_photo_col = find_column_robust(df, ["choose group photo", "group photo", "choose group"])
 
     if not id_col or not product_col:
         print(f"Error: Missing required columns. Found ID: {id_col}, Product: {product_col}")
@@ -117,22 +121,33 @@ def load_and_process_data(excel_path=None):
         
         # List of errors for this student
         student_errors = []
+        student_has_standard_package = False
 
+        # Prepare list of choices for student to handle missing labels
+        resolved_choices = []
+        raw_choices = [str(r[choice_col]).strip().lower() if choice_col and pd.notna(r[choice_col]) else "" for _, r in student_rows.iterrows()]
+        valid_choices = [c for c in raw_choices if c in ['a', 'b', 'c', 'd']]
+        
+        # If student has exactly one unique valid choice, apply it only to empty rows
+        if len(set(valid_choices)) == 1:
+            representative = valid_choices[0]
+            resolved_choices = [c if c != "" else representative for c in raw_choices]
+        else:
+            resolved_choices = raw_choices
+
+        row_index = 0
         for idx, row in student_rows.iterrows():
             raw_product = row[product_col]
             
             # 1. Get Quantity
             qty = 1
             if qty_col and pd.notna(row[qty_col]):
-                try:
-                    qty = int(float(row[qty_col]))
-                except:
-                    qty = 1 # Default or Error? Assuming default 1 if parse fails, or maybe log?
+                try: qty = int(float(row[qty_col]))
+                except: qty = 1
             
-            # 2. Get Photo Choice
-            photo_choice = None # No longer defaulting to 'a'
-            if choice_col and pd.notna(row[choice_col]):
-                photo_choice = str(row[choice_col]).strip().lower()
+            # 2. Get Photo Choice (using resolved logic)
+            photo_choice = resolved_choices[row_index] if resolved_choices[row_index] else None
+            row_index += 1
             
             # Validate Photo Choice - Strict check for A-D
             if photo_choice:
@@ -163,9 +178,8 @@ def load_and_process_data(excel_path=None):
                     'real_choice': photo_choice, # processing key
                     'standard_string': "", 
                     'others': [], 
-                    'has_personal': False,
                     'group_print_types': set(),
-                    'group_codes': ""
+                    'group_items': []  # List of {code, photo_data} dicts
                 }
             
             grp = choices_map[group_key]
@@ -175,7 +189,7 @@ def load_and_process_data(excel_path=None):
                 # e.g. code='f', qty=2 -> 'ff'
                 if qty < 1: qty = 1 # Safety
                 grp['standard_string'] += (code * qty)
-                grp['has_personal'] = True
+                student_has_standard_package = True
             
             elif p_type in ['group', 'cd', 'touchup']:
                 # Quantity Check: Must be 1 for CD/Touchup usually? 
@@ -198,9 +212,23 @@ def load_and_process_data(excel_path=None):
                         })
                         continue
                     
-                    # Accumulate group code
-                    # Handle Quantity (e.g. 2x -> 'mm')
-                    grp['group_codes'] += (code * qty)
+                    # Capture group photo data
+                    group_photo_data = ""
+                    if group_photo_col and pd.notna(row[group_photo_col]):
+                        group_photo_data = str(row[group_photo_col]).strip()
+                    
+                    # Accumulate group codes with photo data
+                    # Store each instance separately to preserve photo data
+                    if 'group_items' not in grp:
+                        grp['group_items'] = []
+                    
+                    # Add qty instances of this group print with its photo data
+                    for _ in range(qty):
+                        grp['group_items'].append({
+                            'code': code,
+                            'photo_data': group_photo_data
+                        })
+                    
                     continue # Do NOT add to 'others' yet, we will add combined at end
 
                 # Add to 'others' list (CD, Touchup)
@@ -229,13 +257,23 @@ def load_and_process_data(excel_path=None):
         final_choices = []
         for key, data in choices_map.items():
             
-            # If we have accumulated group codes, add them as a single item now
-            if data.get('group_codes'):
-                data['others'].append({
-                    'code': data['group_codes'],
-                    'type': 'group',
-                    'raw_product': 'Combined Group Prints'
-                })
+            # If we have accumulated group items, add them individually with photo data
+            if data.get('group_items'):
+                for item in data['group_items']:
+                    code = item['code']
+                    photo_data = item['photo_data']
+                    
+                    # Format: code(photo_data) if photo_data exists, otherwise just code
+                    if photo_data:
+                        formatted_code = f"{code}({photo_data})"
+                    else:
+                        formatted_code = code
+                    
+                    data['others'].append({
+                        'code': formatted_code,
+                        'type': 'group',
+                        'raw_product': f'Group Print {code.upper()}'
+                    })
 
             # Process 'others' to resolve Group Print box location
             processed_others = []
@@ -248,7 +286,7 @@ def load_and_process_data(excel_path=None):
                 elif p_type == 'touchup':
                     target_box = 'touchup'
                 elif p_type == 'group':
-                    if data['has_personal']:
+                    if student_has_standard_package:
                         target_box = 'class_pkg_box'
                     else:
                         target_box = 'class_pix_no_pkg_box'
