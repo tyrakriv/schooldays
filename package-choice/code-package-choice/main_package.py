@@ -105,8 +105,9 @@ def run_automation():
     
     print("--- READY TO START PACKAGE ENTRY ---")
     print("1. Ensure School Days app is open and ready.")
-    print("2. EMERGENCY STOP: Slam mouse quickly to any corner of the screen.")
-    print("3. OR click on this Terminal window and press Ctrl+C.")
+    print("2. IMPORTANT: Manually CHECK all input boxes (like Touchup) so they are editable!")
+    print("3. EMERGENCY STOP: Slam mouse quickly to any corner of the screen.")
+    print("4. OR click on this Terminal window and press Ctrl+C.")
     print("------------------------------------")
     
     students = load_and_process_data(None) # Auto-finds Excel
