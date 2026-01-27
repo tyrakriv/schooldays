@@ -38,7 +38,7 @@ def log_error(student_id, last_name, product_raw, reason):
     except Exception as e:
         print(f"Failed to log error: {e}")
 
-def click_and_type(coord, text, press_enter=True):
+def click_and_type(coord, text):
     if not coord:
         return
     pyautogui.click(coord['x'], coord['y'])
@@ -55,10 +55,6 @@ def click_and_type(coord, text, press_enter=True):
     
     pyautogui.typewrite(str(text))
     time.sleep(0.05)
-    
-    if press_enter:
-        pyautogui.press('enter')
-        time.sleep(0.1) # Wait for add
 
 def run_automation():
     coords = load_coordinates()
@@ -194,7 +190,7 @@ def run_automation():
             if standard_string:
                 print(f"     -> Entering Standard Packages: {standard_string}")
                 if 'quick_package_entry_box' in coords:
-                    click_and_type(coords['quick_package_entry_box'], standard_string, False)
+                    click_and_type(coords['quick_package_entry_box'], standard_string)
                     
                     # Capture for validation if not yet validated
                     if not validated_first_student:
@@ -218,8 +214,7 @@ def run_automation():
                                 time.sleep(0.5)
                     
                     elif target_box_name in coords:
-                         # click_and_type handles double click + enter
-                         click_and_type(coords[target_box_name], p_code, False)
+                         click_and_type(coords[target_box_name], p_code)
                     else:
                         print(f"     -> Error: Coordinate '{target_box_name}' not defined.")
                         log_error(sid, lname, item['raw_product'], f"Missing Coordinate: {target_box_name}")
@@ -268,13 +263,8 @@ def read_field_text(coord):
     
     # Click and focus
     pyautogui.click(coord['x'], coord['y'])
-    
-    # Select All (Cmd+A for Mac, Ctrl+A for Windows - user is on Mac but might be RDP?)
-    # User OS is Mac. Standard is Command+A (Meta+A).
-    # But often RDP/VMs use Ctrl. I'll stick to what they used before or safer: Triple Click.
-    # UPDATE: User requests slowing down, triple click might be too fast or unreliable? 
-    # Sticking to doubleClick() as standard inputs usually select all on double click.
-    pyautogui.doubleClick()
+
+    pyautogui.tripleClick()
     time.sleep(0.5)
     
     # Clear clipboard first
