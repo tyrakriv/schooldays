@@ -35,8 +35,7 @@ def run_wizard():
     coords["choice_b"] = get_coordinate("PHOTO CHOICE 'B' / 'b'")
     coords["choice_c"] = get_coordinate("PHOTO CHOICE 'C' / 'c'")
     coords["choice_d"] = get_coordinate("PHOTO CHOICE 'D' / 'd'")
-    coords["choice_e"] = get_coordinate("PHOTO CHOICE 'E' / 'e'")
-    coords["choice_f"] = get_coordinate("PHOTO CHOICE 'F' / 'f'")
+
     # Some extra common ones?
     # No harm in gathering, but the prompt only specified letters and "click on photo choice"
 
