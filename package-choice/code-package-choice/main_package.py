@@ -194,7 +194,7 @@ def run_automation():
             if standard_string:
                 print(f"     -> Entering Standard Packages: {standard_string}")
                 if 'quick_package_entry_box' in coords:
-                    click_and_type(coords['quick_package_entry_box'], standard_string)
+                    click_and_type(coords['quick_package_entry_box'], standard_string, False)
                     
                     # Capture for validation if not yet validated
                     if not validated_first_student:
@@ -219,7 +219,7 @@ def run_automation():
                     
                     elif target_box_name in coords:
                          # click_and_type handles double click + enter
-                         click_and_type(coords[target_box_name], p_code)
+                         click_and_type(coords[target_box_name], p_code, False)
                     else:
                         print(f"     -> Error: Coordinate '{target_box_name}' not defined.")
                         log_error(sid, lname, item['raw_product'], f"Missing Coordinate: {target_box_name}")
