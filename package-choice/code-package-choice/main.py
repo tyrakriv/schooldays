@@ -129,8 +129,11 @@ def run_automation():
         sid = s['id']
         lname = s['last_name']
         for grp in s.get('choices_groups', []):
-            # Flatten for report
-            other_str = "; ".join([f"{x['raw_product']} (Input '{x['code']}')" for x in grp['others']])
+            # Flatten for report - exclude error items like "Lost Order Form"
+            valid_others = [x for x in grp['others'] 
+                          if 'lost order' not in x['raw_product'].lower() 
+                          and 'invalid' not in x['raw_product'].lower()]
+            other_str = "; ".join([f"{x['raw_product']} (Input '{x['code']}')" for x in valid_others])
             verif_data.append({
                 'Student ID': sid,
                 'Last Name': lname,
