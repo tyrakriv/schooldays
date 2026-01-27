@@ -240,7 +240,7 @@ def run_automation():
             else:
                 print("VALIDATION FAILED! The value in the box does not match what we typed.")
                 print("Aborting to prevent errors.")
-                log_error(sid, lname, f"Standard Pkg: {entry_for_validation}", f"VALIDATION FAILED (Found: '{found_pkg}')")
+                log_error(sid, lname, f"Standard Pkg: {entry_for_validation}", f"VALIDATION FAILED (Found: '{found_pkg}' in quick package entry box when it should be {entry_for_validation})")
                 return False
 
         time.sleep(0.5) # Pause between students
