@@ -256,11 +256,14 @@ def load_and_process_data(excel_path=None):
                 item['target_box'] = target_box
                 processed_others.append(item)
             
-            final_choices.append({
-                'photo_choice': data['real_choice'], # Can be None
-                'standard_string': data['standard_string'],
-                'others': processed_others
-            })
+            
+            # Only add this choice group if it has actual content (standard packages or valid other items)
+            if data['standard_string'] or processed_others:
+                final_choices.append({
+                    'photo_choice': data['real_choice'], # Can be None
+                    'standard_string': data['standard_string'],
+                    'others': processed_others
+                })
 
         processed_data.append({
             'id': sid,
