@@ -36,7 +36,7 @@ def log_runtime_error(student, reason):
         reports_dir = "reports"
         if not os.path.exists(reports_dir):
             os.makedirs(reports_dir)
-        filename = os.path.join(reports_dir, f"run-runtime-errors-{SESSION_TIMESTAMP}.csv")
+        filename = os.path.join(reports_dir, f"yearbook-choice-errors-{SESSION_TIMESTAMP}.csv")
     
     err_entry = student.copy()
     if 'error_reason' in err_entry:
@@ -55,11 +55,11 @@ def log_runtime_error(student, reason):
 
 
 def log_success(student):
-    """Logs successfully processed students to a separate CSV."""
+    """Logs successfully completed students (one row per student we finished)."""
     reports_dir = "reports"
     if not os.path.exists(reports_dir):
         os.makedirs(reports_dir)
-    filename = os.path.join(reports_dir, f"yearbook_choice_processed_data{SESSION_TIMESTAMP}.csv")
+    filename = os.path.join(reports_dir, f"yearbook-choice-completed-{SESSION_TIMESTAMP}.csv")
     
     # Create ordered dict/df
     df = pd.DataFrame([student])

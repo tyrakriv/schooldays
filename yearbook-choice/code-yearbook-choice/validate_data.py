@@ -14,7 +14,7 @@ def validate_data():
         os.makedirs(reports_dir)
     
     # We use a single file for both Setup and Run errors
-    report_file = os.path.join(reports_dir, f"session-errors-{timestamp}.csv")
+    report_file = os.path.join(reports_dir, f"yearbook-choice-errors-{timestamp}.csv")
     
     # Save this path to a temp file so main.py knows where to log
     session_info_path = os.path.join(os.path.dirname(__file__), "current_session.txt")
@@ -28,7 +28,6 @@ def validate_data():
     excel_path = get_excel_path()
     
     if not excel_path:
-        print("Error: No Excel file (.xlsx) found in this folder.")
         sys.exit(1)
     print(f"Checking file: {excel_path}")
 

@@ -20,7 +20,7 @@ def get_excel_path(directory="."):
     Finds the first .xlsx file in the specified directory.
     """
     search_path = os.path.join(directory, "*.xlsx")
-    excel_files = glob.glob(search_path)
+    excel_files = [f for f in glob.glob(search_path) if not os.path.basename(f).startswith("~$")]
     
     if not excel_files:
         return None

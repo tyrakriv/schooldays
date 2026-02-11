@@ -16,8 +16,9 @@ def validate():
     import glob
     if not excel_path:
         # get_excel_path prints an error if > 1 file is found, but silent if 0.
-        # We only want to print our error if there are genuinely 0 files.
-        if not glob.glob(os.path.join(base_dir, "*.xlsx")):
+        # We only want to print our error if there are genuinely 0 files (ignore Excel temp ~$ files).
+        all_xlsx = [f for f in glob.glob(os.path.join(base_dir, "*.xlsx")) if not os.path.basename(f).startswith("~$")]
+        if not all_xlsx:
             print("\n[ERROR] No Excel file found in the package-choice folder!")
             print("Please place your Input Excel file in the 'package-choice' folder.")
         sys.exit(1)

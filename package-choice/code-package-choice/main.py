@@ -9,6 +9,7 @@ from data_handler_package import load_and_process_data
 
 COORD_FILE = os.path.join(os.path.dirname(__file__), "coordinates_package.json")
 SESSION_TIMESTAMP = datetime.now().strftime("%Y%m%d_%H%M%S")
+_error_log = []
 
 def load_coordinates():
     if not os.path.exists(COORD_FILE):
@@ -17,26 +18,49 @@ def load_coordinates():
     with open(COORD_FILE, "r") as f:
         return json.load(f)
 
-def log_error(student_id, last_name, product_raw, reason):
-    reports_dir = "reports"
-    if not os.path.exists(reports_dir):
-        os.makedirs(reports_dir)
-    filename = os.path.join(reports_dir, f"package-errors-{SESSION_TIMESTAMP}.csv")
-    
+def log_error(student_id, first_name, last_name, product_raw, reason):
+    """Append to _error_log; written to Excel on each write (after load, at end, on abort)."""
     entry = {
         "student_id": student_id,
+        "first_name": first_name,
         "last_name": last_name,
         "product_raw": product_raw,
         "error_reason": reason,
         "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     }
-    
-    df = pd.DataFrame([entry])
-    header = not os.path.exists(filename)
+    _error_log.append(entry)
+
+def _write_error_report():
+    if not _error_log:
+        return
+    reports_dir = "reports"
+    if not os.path.exists(reports_dir):
+        os.makedirs(reports_dir)
+    filename = os.path.join(reports_dir, f"package-choice-errors-{SESSION_TIMESTAMP}.xlsx")
     try:
-        df.to_csv(filename, mode='a', header=header, index=False)
+        pd.DataFrame(_error_log).to_excel(filename, index=False)
+        print(f"Error report saved: {filename}")
     except Exception as e:
-        print(f"Failed to log error: {e}")
+        print(f"Failed to write error report: {e}")
+
+def log_completed(student):
+    """Log successfully completed students (one row per student we finished). Same idea as yearbook-choice-completed."""
+    reports_dir = "reports"
+    if not os.path.exists(reports_dir):
+        os.makedirs(reports_dir)
+    filename = os.path.join(reports_dir, f"package-choice-completed-{SESSION_TIMESTAMP}.csv")
+    row = {
+        "student_id": student["id"],
+        "first_name": student.get("first_name", ""),
+        "last_name": student.get("last_name", ""),
+        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+    }
+    try:
+        df = pd.DataFrame([row])
+        header = not os.path.exists(filename)
+        df.to_csv(filename, mode="a", header=header, index=False)
+    except Exception as e:
+        print(f"Failed to log completed: {e}")
 
 def click_and_type(coord, text):
     if not coord:
@@ -49,6 +73,8 @@ def click_and_type(coord, text):
     time.sleep(0.05)
 
 def run_automation():
+    global _error_log
+    _error_log = []
     coords = load_coordinates()
     if not coords:
         return False
@@ -69,9 +95,15 @@ def run_automation():
         return False
         
     print(f"Loaded {len(students)} students to process.")
-    
-    # Generate Verification Excel
-    print("Generating Processed Student Data Report...")
+
+    # Log all data-load errors; then write Excel so it exists even if run is aborted
+    for s in students:
+        for err in s.get('errors', []):
+            log_error(s['id'], s.get('first_name', ''), s.get('last_name', ''), err.get('raw_product', ''), err.get('reason', ''))
+    _write_error_report()
+
+    # Verification report: summary of package choices we're entering (before run starts)
+    print("Generating run summary...")
     reports_dir = "reports"
     if not os.path.exists(reports_dir):
         os.makedirs(reports_dir)
@@ -79,7 +111,8 @@ def run_automation():
     verif_data = []
     for s in students:
         sid = s['id']
-        lname = s['last_name']
+        fname = s.get('first_name', '')
+        lname = s.get('last_name', '')
         for grp in s.get('choices_groups', []):
             # Organize items by target box
             quick_pkg = grp['standard_string']
@@ -127,9 +160,9 @@ def run_automation():
             
     if verif_data:
         v_df = pd.DataFrame(verif_data)
-        v_file = os.path.join(reports_dir, f"package_choices_processed_data-{SESSION_TIMESTAMP}.xlsx")
+        v_file = os.path.join(reports_dir, f"package-choice-run-summary-{SESSION_TIMESTAMP}.xlsx")
         v_df.to_excel(v_file, index=False)
-        print(f"saved processed data file to: {v_file}")
+        print(f"Run summary saved: {v_file}")
 
     print("Starting in 3 seconds...")
     time.sleep(3)
@@ -138,17 +171,19 @@ def run_automation():
 
     for student in students:
         sid = student['id']
-        lname = student['last_name']
+        fname = student.get('first_name', '')
+        lname = student.get('last_name', '')
         choice_groups = student.get('choices_groups', [])
         errors = student.get('errors', [])
         
         print(f"Processing: {sid} - {lname}")
         
-        # 0. Log pre-existing errors (from data_handler logic)
+        # 0. Log pre-existing errors (from data_handler logic; data-check errors already in report from load)
         if errors:
             print(f"  ⚠️  {len(errors)} error(s) logged for this student")
         for err in errors:
-            log_error(sid, lname, err['raw_product'], err['reason'])
+            if err.get('raw_product') != '(data check)':
+                log_error(sid, fname, lname, err['raw_product'], err['reason'])
             
         if not choice_groups:
             # If no valid groups to process, skip automation for this student
@@ -178,8 +213,12 @@ def run_automation():
             
             if not is_match:
                 print(f"  -> NAME MISMATCH: Found '{found_name}', Expected '{lname}'")
-                log_error(sid, lname, "ALL", f"Name Mismatch (Found: {found_name})")
+                log_error(sid, fname, lname, "ALL", f"Name Mismatch (Found: {found_name})")
                 continue # Skip this student
+
+        # 2.5 Audit Trail (Web Entry -> "auto")
+        if 'web_entry_box' in coords:
+            click_and_type(coords['web_entry_box'], "auto")
 
         # Track what we entered for validation
         entry_for_validation = None
@@ -199,7 +238,7 @@ def run_automation():
                     pyautogui.click(coords[choice_key]['x'], coords[choice_key]['y'])
                     time.sleep(0.1)
                 else:
-                    log_error(sid, lname, "Photo Choice", f"Coordinate for choice '{photo_choice}' not found")
+                    log_error(sid, fname, lname, "Photo Choice", f"Coordinate for choice '{photo_choice}' not found")
             else:
                  # If None, we assume we skip this or default is acceptable
                  pass
@@ -213,7 +252,7 @@ def run_automation():
                     if not validated_first_student:
                         entry_for_validation = standard_string
                 else:
-                    log_error(sid, lname, "Standard Package", "'quick_package_entry_box' coordinate missing")
+                    log_error(sid, fname, lname, "Standard Package", "'quick_package_entry_box' coordinate missing")
             
             # C. Input Other Items (Group, CD, Touchup) - processed individually
             for item in other_items:
@@ -225,12 +264,12 @@ def run_automation():
                         if 'touchup_dropdown' in coords:
                             click_and_type(coords['touchup_dropdown'], "Pending")
                         else:
-                            log_error(sid, lname, "Touchup", "'touchup_dropdown' coordinate missing")
+                            log_error(sid, fname, lname, "Touchup", "'touchup_dropdown' coordinate missing")
 
                     elif target_box_name in coords:
                          click_and_type(coords[target_box_name], p_code)
                     else:
-                        log_error(sid, lname, item['raw_product'], f"Missing Coordinate: {target_box_name}")
+                        log_error(sid, fname, lname, item['raw_product'], f"Missing Coordinate: {target_box_name}")
 
         # 4. Perform Validation Check (Only for the first successful standard entry)
         if not validated_first_student and entry_for_validation:
@@ -248,11 +287,14 @@ def run_automation():
                 validated_first_student = True
             else:
                 print(f"✗ VALIDATION FAILED: Expected '{entry_for_validation}', Found '{found_pkg}'")
-                log_error(sid, lname, f"Standard Pkg: {entry_for_validation}", f"VALIDATION FAILED (Found: '{found_pkg}' in quick package entry box when it should be {entry_for_validation})")
+                log_error(sid, fname, lname, f"Standard Pkg: {entry_for_validation}", f"VALIDATION FAILED (Found: '{found_pkg}' in quick package entry box when it should be {entry_for_validation})")
+                _write_error_report()
                 return False
 
+        log_completed(student)
         time.sleep(0.1) # Pause between students
 
+    _write_error_report()
     print("Automation Complete!")
     return True
 
@@ -293,10 +335,13 @@ if __name__ == "__main__":
             sys.exit(1)
     except pyautogui.FailSafeException:
         print("\n[EMERGENCY STOP] Failsafe triggered by moving mouse to corner.")
+        _write_error_report()
         sys.exit(1)
     except KeyboardInterrupt:
         print("\n[ABORTED] Stopped by user (Ctrl+C).")
+        _write_error_report()
         sys.exit(1)
     except Exception as e:
         print(f"\n[CRITICAL ERROR] {e}")
+        _write_error_report()
         sys.exit(1)

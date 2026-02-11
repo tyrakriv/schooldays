@@ -32,13 +32,13 @@ def map_product_to_code(product_name):
     # Check 8x10
     if ("8" in p and "10" in p) or "8x10" in p or "8 x 10" in p:
         if "group print" in p: 
-            return "l", 'group', p
+            return "L", 'group', p
         return "t", 'standard', p
         
     # Check 5x7
     if ("5" in p and "7" in p) or "5x7" in p or "5 x 7" in p:
         if "group print" in p:
-            return "m", 'group', p
+            return "M", 'group', p
         return "s", 'standard', p
 
     # Check 3x5
@@ -89,6 +89,7 @@ def load_and_process_data(excel_path=None):
     choice_col = find_column_robust(df, ["photo choice", "yearbook choice"])
     product_col = find_column_robust(df, ["product name", "package choice", "description"])
     qty_col = find_column_robust(df, ["quantity", "qty"])
+    first_name_col = find_column_robust(df, ["first name", "student first name"])
     last_name_col = find_column_robust(df, ["last name", "student last name"])
     group_photo_col = find_column_robust(df, ["choose group photo", "group photo", "choose group"])
 
@@ -106,11 +107,45 @@ def load_and_process_data(excel_path=None):
     for sid in unique_ids:
         student_rows = df[df['normalized_id'] == sid]
         
+        first_name = ""
         last_name = ""
-        if last_name_col and not student_rows.empty:
-             val = student_rows.iloc[0][last_name_col]
-             if pd.notna(val):
-                 last_name = str(val).strip()
+        if not student_rows.empty:
+            row0 = student_rows.iloc[0]
+            if first_name_col and pd.notna(row0.get(first_name_col)):
+                first_name = str(row0[first_name_col]).strip()
+            if last_name_col and pd.notna(row0.get(last_name_col)):
+                last_name = str(row0[last_name_col]).strip()
+
+        # DATA ERROR: Same Student ID used for multiple different people (first+last); ID must be unique per person
+        name_cols = [c for c in (first_name_col, last_name_col) if c]
+        if name_cols:
+            people_norm = set()
+            people_orig = []
+            for _, row in student_rows.iterrows():
+                first = ""
+                if first_name_col and pd.notna(row[first_name_col]):
+                    first = str(row[first_name_col]).strip()
+                last = ""
+                if last_name_col and pd.notna(row[last_name_col]):
+                    last = str(row[last_name_col]).strip()
+                if first or last:
+                    key = (normalize_text(first), normalize_text(last))
+                    if key not in people_norm:
+                        people_norm.add(key)
+                        people_orig.append((first or "", last or ""))
+            if len(people_orig) > 1:
+                names_display = sorted(f"{f} {l}".strip() or "(blank)" for f, l in people_orig)
+                reason = f"DATA ERROR: Same Student ID ({sid}) used for multiple different people: {', '.join(names_display)}. ID must be unique per person. Correct the source file before running."
+                err_entry = {'raw_product': '(data check)', 'reason': reason}
+                for (fn, ln) in sorted(people_orig, key=lambda x: (x[0].lower(), x[1].lower())):
+                    processed_data.append({
+                        'id': sid,
+                        'first_name': fn,
+                        'last_name': ln,
+                        'choices_groups': [],
+                        'errors': [err_entry]
+                    })
+                continue
 
         # Track duplicates: (choice, raw_product) -> count
         seen_entries = defaultdict(int)
@@ -305,6 +340,7 @@ def load_and_process_data(excel_path=None):
 
         processed_data.append({
             'id': sid,
+            'first_name': first_name,
             'last_name': last_name,
             'choices_groups': final_choices,
             'errors': student_errors
