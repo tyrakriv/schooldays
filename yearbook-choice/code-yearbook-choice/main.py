@@ -139,9 +139,10 @@ def run_automation():
         if not verify_field_is_editable(coords['last_name_box'], "Last Name"):
             return False
     
-    for i, student in enumerate(students):
+    for student in students:
         sid = student['id']
         selection = student['selection']
+        excel_last_name = student.get('last_name', '')
                 
         # 1. Search
         pyautogui.click(coords['search_box']['x'], coords['search_box']['y'])
