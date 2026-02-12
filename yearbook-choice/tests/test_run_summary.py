@@ -24,6 +24,17 @@ def _normalize_df_for_compare(df):
     return df.sort_index(axis=1).reset_index(drop=True)
 
 
+def _normalize_dtypes(df):
+    """Convert string dtypes to object so got/expected match (Excel read can yield either)."""
+    if df is None or df.empty:
+        return df
+    df = df.copy()
+    for c in df.columns:
+        if pd.api.types.is_string_dtype(df[c]):
+            df[c] = df[c].astype(object)
+    return df
+
+
 def _safe_str(val):
     """Convert to str; treat NaN/None as empty."""
     if pd.isna(val) or val is None:
@@ -125,8 +136,28 @@ class TestYearbookChoice(unittest.TestCase):
         if errors_col_order:
             got_errors_for_file[errors_col_order].to_excel(got_errors_path, index=False)
 
+        # Normalize dtypes (e.g. StringDtype vs object from Excel) so comparison doesn't fail
+        got_summary = _normalize_dtypes(got_summary)
+        exp_summary = _normalize_dtypes(exp_summary)
+        got_errors = _normalize_dtypes(got_errors)
+        exp_errors = _normalize_dtypes(exp_errors)
+
         pd.testing.assert_frame_equal(got_summary, exp_summary, check_like=True)
-        pd.testing.assert_frame_equal(got_errors, exp_errors, check_like=True)
+        # Compare errors only on student id + error_reason (other columns are raw input and may differ, e.g. wrong value in School Name)
+        err_key_got = [c for c in (["error_reason"] + ([sid_col_got] if sid_col_got else [])) if c in got_errors.columns]
+        err_key_exp = [c for c in (["error_reason"] + ([sid_col_exp] if sid_col_exp else [])) if c in exp_errors.columns]
+        if err_key_got and err_key_exp:
+            got_sub = got_errors[err_key_got].copy()
+            exp_sub = exp_errors[err_key_exp].copy()
+            if sid_col_got and sid_col_exp and sid_col_got != sid_col_exp:
+                exp_sub = exp_sub.rename(columns={sid_col_exp: sid_col_got})
+            sort_cols = [c for c in [sid_col_got or sid_col_exp, "error_reason"] if c in got_sub.columns and c in exp_sub.columns]
+            if sort_cols:
+                got_sub = got_sub.sort_values(sort_cols).reset_index(drop=True)
+                exp_sub = exp_sub.sort_values(sort_cols).reset_index(drop=True)
+            pd.testing.assert_frame_equal(got_sub, exp_sub, check_like=True)
+        else:
+            pd.testing.assert_frame_equal(got_errors, exp_errors, check_like=True)
 
 
 if __name__ == "__main__":

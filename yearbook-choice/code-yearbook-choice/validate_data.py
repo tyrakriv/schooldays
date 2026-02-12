@@ -49,16 +49,6 @@ def _process_validation(df, student_id_col, selection_col, date_col, last_name_c
     unique_ids = df[student_id_col].unique()
 
     for student_id in unique_ids:
-        # Flag invalid or empty student ID before processing
-        sid_str = str(student_id).strip().lower() if pd.notna(student_id) else ""
-        if not sid_str or sid_str == "invalid" or sid_str == "nan":
-            student_rows = df[df[student_id_col] == student_id].copy()
-            if not student_rows.empty:
-                err_row = student_rows.iloc[0].copy()
-                err_row['error_reason'] = f"Invalid Student ID: '{student_id}'"
-                error_rows.append(err_row)
-            continue
-
         student_rows = df[df[student_id_col] == student_id].copy()
         if student_rows.empty:
             continue
