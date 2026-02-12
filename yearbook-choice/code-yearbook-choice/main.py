@@ -8,9 +8,9 @@ from datetime import datetime
 from data_handler import load_and_process_data
 
 COORD_FILE = os.path.join(os.path.dirname(__file__), "coordinates.json")
-
-# Global timestamp for this run instance
 SESSION_TIMESTAMP = datetime.now().strftime("%Y%m%d_%H%M%S")
+_error_log = []
+_completed_log = []
 
 def load_coordinates():
     if not os.path.exists(COORD_FILE):
@@ -20,54 +20,56 @@ def load_coordinates():
         return json.load(f)
 
 def log_runtime_error(student, reason):
-    # Try to find the shared session file from validate_data.py
-    session_info_path = os.path.join(os.path.dirname(__file__), "current_session.txt")
-    filename = None
-    
-    if os.path.exists(session_info_path):
-        try:
-            with open(session_info_path, "r") as f:
-                filename = f.read().strip()
-        except:
-            pass
-            
-    # Fallback if running standalone or read failed
-    if not filename:
-        reports_dir = "reports"
-        if not os.path.exists(reports_dir):
-            os.makedirs(reports_dir)
-        filename = os.path.join(reports_dir, f"yearbook-choice-errors-{SESSION_TIMESTAMP}.csv")
-    
     err_entry = student.copy()
-    if 'error_reason' in err_entry:
-        del err_entry['error_reason']
-        
-    err_entry['error_reason'] = reason
-    
-    # Create ordered dict/df (Natural order is fine since we just added error_reason last)
-    df = pd.DataFrame([err_entry])
-    header = not os.path.exists(filename)
-    try:
-        df.to_csv(filename, mode='a', header=header, index=False)
-    except Exception as e:
-        print(f"Failed to log runtime error: {e}")
+    if "error_reason" in err_entry:
+        del err_entry["error_reason"]
+    err_entry["error_reason"] = reason
+    _error_log.append(err_entry)
 
-
-
-def log_success(student):
-    """Logs successfully completed students (one row per student we finished)."""
+def _write_error_report():
+    if not _error_log:
+        return
+    session_info_path = os.path.join(os.path.dirname(__file__), "current_session.txt")
     reports_dir = "reports"
     if not os.path.exists(reports_dir):
         os.makedirs(reports_dir)
-    filename = os.path.join(reports_dir, f"yearbook-choice-completed-{SESSION_TIMESTAMP}.csv")
-    
-    # Create ordered dict/df
-    df = pd.DataFrame([student])
-    header = not os.path.exists(filename)
+    filename = os.path.join(reports_dir, f"yearbook-choice-errors-{SESSION_TIMESTAMP}.xlsx")
+    if os.path.exists(session_info_path):
+        try:
+            with open(session_info_path, "r") as f:
+                p = f.read().strip()
+                if p and os.path.exists(p):
+                    filename = p
+        except OSError:
+            pass
     try:
-        df.to_csv(filename, mode='a', header=header, index=False)
+        if os.path.exists(filename):
+            existing = pd.read_excel(filename)
+            new_df = pd.DataFrame(_error_log)
+            combined = pd.concat([existing, new_df], ignore_index=True)
+            combined.to_excel(filename, index=False)
+        else:
+            pd.DataFrame(_error_log).to_excel(filename, index=False)
+        print(f"Error report saved: {filename}")
     except Exception as e:
-        print(f"Failed to log success: {e}")
+        print(f"Failed to write error report: {e}")
+
+def log_success(student):
+    """Logs successfully completed students (one row per student we finished)."""
+    _completed_log.append(student)
+
+def _write_completed_report():
+    if not _completed_log:
+        return
+    reports_dir = "reports"
+    if not os.path.exists(reports_dir):
+        os.makedirs(reports_dir)
+    filename = os.path.join(reports_dir, f"yearbook-choice-completed-{SESSION_TIMESTAMP}.xlsx")
+    try:
+        pd.DataFrame(_completed_log).to_excel(filename, index=False)
+        print(f"Completed list saved: {filename}")
+    except Exception as e:
+        print(f"Failed to write completed report: {e}")
 
 def verify_field_is_editable(entry, field_name):
     pyautogui.click(entry['x'], entry['y'])
@@ -106,6 +108,9 @@ def verify_field_is_editable(entry, field_name):
     return True
 
 def run_automation():
+    global _error_log, _completed_log
+    _error_log = []
+    _completed_log = []
     coords = load_coordinates()
     if not coords:
         return False
@@ -221,6 +226,8 @@ def run_automation():
         # Log success
         log_success(student)
 
+    _write_error_report()
+    _write_completed_report()
     print("Automation Complete!")
     return True
 
@@ -237,7 +244,11 @@ if __name__ == "__main__":
         print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
         print("   AUTOMATION ABORTED BY USER (FailSafe Triggered)")
         print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+        _write_error_report()
+        _write_completed_report()
         sys.exit(1)
     except Exception as e:
         print(f"\nCRITICAL ERROR: {e}")
+        _write_error_report()
+        _write_completed_report()
         sys.exit(1)

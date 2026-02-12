@@ -10,6 +10,7 @@ from data_handler_package import load_and_process_data
 COORD_FILE = os.path.join(os.path.dirname(__file__), "coordinates_package.json")
 SESSION_TIMESTAMP = datetime.now().strftime("%Y%m%d_%H%M%S")
 _error_log = []
+_completed_log = []
 
 def load_coordinates():
     if not os.path.exists(COORD_FILE):
@@ -44,23 +45,27 @@ def _write_error_report():
         print(f"Failed to write error report: {e}")
 
 def log_completed(student):
-    """Log successfully completed students (one row per student we finished). Same idea as yearbook-choice-completed."""
-    reports_dir = "reports"
-    if not os.path.exists(reports_dir):
-        os.makedirs(reports_dir)
-    filename = os.path.join(reports_dir, f"package-choice-completed-{SESSION_TIMESTAMP}.csv")
+    """Buffer completed students; written to Excel at end or on abort."""
     row = {
         "student_id": student["id"],
         "first_name": student.get("first_name", ""),
         "last_name": student.get("last_name", ""),
         "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
     }
+    _completed_log.append(row)
+
+def _write_completed_report():
+    if not _completed_log:
+        return
+    reports_dir = "reports"
+    if not os.path.exists(reports_dir):
+        os.makedirs(reports_dir)
+    filename = os.path.join(reports_dir, f"package-choice-completed-{SESSION_TIMESTAMP}.xlsx")
     try:
-        df = pd.DataFrame([row])
-        header = not os.path.exists(filename)
-        df.to_csv(filename, mode="a", header=header, index=False)
+        pd.DataFrame(_completed_log).to_excel(filename, index=False)
+        print(f"Completed list saved: {filename}")
     except Exception as e:
-        print(f"Failed to log completed: {e}")
+        print(f"Failed to write completed report: {e}")
 
 def click_and_type(coord, text):
     if not coord:
@@ -73,8 +78,9 @@ def click_and_type(coord, text):
     time.sleep(0.05)
 
 def run_automation():
-    global _error_log
+    global _error_log, _completed_log
     _error_log = []
+    _completed_log = []
     coords = load_coordinates()
     if not coords:
         return False
@@ -295,6 +301,7 @@ def run_automation():
         time.sleep(0.1) # Pause between students
 
     _write_error_report()
+    _write_completed_report()
     print("Automation Complete!")
     return True
 
@@ -336,12 +343,15 @@ if __name__ == "__main__":
     except pyautogui.FailSafeException:
         print("\n[EMERGENCY STOP] Failsafe triggered by moving mouse to corner.")
         _write_error_report()
+        _write_completed_report()
         sys.exit(1)
     except KeyboardInterrupt:
         print("\n[ABORTED] Stopped by user (Ctrl+C).")
         _write_error_report()
+        _write_completed_report()
         sys.exit(1)
     except Exception as e:
         print(f"\n[CRITICAL ERROR] {e}")
         _write_error_report()
+        _write_completed_report()
         sys.exit(1)

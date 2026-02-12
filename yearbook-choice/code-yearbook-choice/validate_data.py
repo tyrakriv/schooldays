@@ -14,7 +14,7 @@ def validate_data():
         os.makedirs(reports_dir)
     
     # We use a single file for both Setup and Run errors
-    report_file = os.path.join(reports_dir, f"yearbook-choice-errors-{timestamp}.csv")
+    report_file = os.path.join(reports_dir, f"yearbook-choice-errors-{timestamp}.xlsx")
     
     # Save this path to a temp file so main.py knows where to log
     session_info_path = os.path.join(os.path.dirname(__file__), "current_session.txt")
@@ -172,10 +172,8 @@ def validate_data():
 
     # Save Errors
     if error_rows:
-        # report_file is already defined at top
-        
         error_df = pd.DataFrame(error_rows)
-        error_df.to_csv(report_file, index=False)
+        error_df.to_excel(report_file, index=False)
         print(f"-> Error report started: {report_file}")
         
     if not cleaned_rows:
