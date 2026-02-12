@@ -67,13 +67,17 @@ def _write_completed_report():
     except Exception as e:
         print(f"Failed to write completed report: {e}")
 
-def click_and_type(coord, text):
+def click_and_type(coord, text, clear_with_backspace=False):
     if not coord:
         return
     pyautogui.click(coord['x'], coord['y'])
-    pyautogui.tripleClick()
-    time.sleep(0.05)
-    
+    if clear_with_backspace:
+        for _ in range(20):
+            pyautogui.press('backspace')
+        time.sleep(0.05)
+    else:
+        pyautogui.tripleClick()
+        time.sleep(0.05)
     pyautogui.typewrite(str(text))
     time.sleep(0.05)
 
@@ -273,7 +277,9 @@ def run_automation():
                             log_error(sid, fname, lname, "Touchup", "'touchup_dropdown' coordinate missing")
 
                     elif target_box_name in coords:
-                         click_and_type(coords[target_box_name], p_code)
+                         # Class pkg / class pix no pkg boxes: triple-click doesn't clear reliably, use backspace
+                         clear_backspace = target_box_name in ('class_pkg_box', 'class_pix_no_pkg_box')
+                         click_and_type(coords[target_box_name], p_code, clear_with_backspace=clear_backspace)
                     else:
                         log_error(sid, fname, lname, item['raw_product'], f"Missing Coordinate: {target_box_name}")
 
