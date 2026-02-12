@@ -28,7 +28,7 @@ def run_wizard():
     coords["last_name_box"] = get_coordinate("LAST NAME FIELD (To verify student exists)")
 
     # 1.6 Web Entry (Audit Trail)
-    coords["web_entry_box"] = get_coordinate("WEB ENTRY BOX (Audit Trail - we will type 'auto')")
+    coords["web_entry_box"] = get_coordinate("WEB ENTRY BOX (Audit Trail - we will type 'pkg auto')")
     
     # 2. Yearbook Choices (Letters)
     print("\nPlease locate the Yearbook Choice buttons/radios.")

@@ -105,8 +105,7 @@ def verify_field_is_editable(entry, field_name):
     initial_text = pyperclip.paste()
 
     checked = False
-    #if the text is empty, then the checkbox could be unchecked, so see if we can input anything
-    if initial_text.lower().strip() == 'auto':
+    if initial_text.lower().strip() in ('auto', 'pkg auto', 'yrbk auto'):
         checked = True
     else:
         pyautogui.doubleClick()
@@ -170,7 +169,7 @@ def run_automation():
     # 0. INITIALIZATION: Ensure "Web Entry" is UNCHECKED (Reset State)
     # We do this once at the start to ensure we don't carry over manual checks
     if 'web_entry_input_box' in coords:
-        if not verify_field_is_editable(coords['web_entry_input_box'], "Web Entry"):
+        if not verify_field_is_editable(coords['web_entry_input_box'], "Web Entry (yrbk auto)"):
             return False
             
     # 0.5. INITIALIZATION: Ensure "Last Name" is UNCHECKED (Reset State)
@@ -225,18 +224,13 @@ def run_automation():
         else:
              pass  # Validation skipped if not configured
  
-        # 2. Audit Trail (Check "Web Entry" and type "auto")
+        # 2. Audit Trail (Web Entry -> "yrbk auto")
         if 'web_entry_input_box' in coords:
-            # Step A: Try to type "auto" in source box assuming it's enabled
             pyautogui.click(coords['web_entry_input_box']['x'], coords['web_entry_input_box']['y'])
             time.sleep(.1)
-            
-            # Select All to overwrite (Clean entry)
             pyautogui.tripleClick()
             time.sleep(.1)
-            
-            # Type "auto"
-            pyautogui.typewrite("auto")
+            pyautogui.typewrite("yrbk auto")
             time.sleep(.1)
         
         else:

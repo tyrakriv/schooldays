@@ -221,9 +221,9 @@ def run_automation():
                 log_error(sid, fname, lname, "ALL", f"Name Mismatch (Found: {found_name})")
                 continue # Skip this student
 
-        # 2.5 Audit Trail (Web Entry -> "auto")
+        # 2.5 Audit Trail (Web Entry -> "pkg auto")
         if 'web_entry_box' in coords:
-            click_and_type(coords['web_entry_box'], "auto")
+            click_and_type(coords['web_entry_box'], "pkg auto")
 
         # Track what we entered for validation
         entry_for_validation = None
