@@ -65,6 +65,7 @@ def _write_error_report():
                     row[err_col] = entry.get("error_reason")
                 new_rows.append(row)
             new_df = pd.DataFrame(new_rows, columns=existing.columns)
+            new_df = new_df.astype(object)
             combined = pd.concat([existing, new_df], ignore_index=True)
             combined.to_excel(filename, index=False)
         else:

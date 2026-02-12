@@ -49,6 +49,16 @@ def _process_validation(df, student_id_col, selection_col, date_col, last_name_c
     unique_ids = df[student_id_col].unique()
 
     for student_id in unique_ids:
+        # Flag invalid or empty student ID before processing
+        sid_str = str(student_id).strip().lower() if pd.notna(student_id) else ""
+        if not sid_str or sid_str == "invalid" or sid_str == "nan":
+            student_rows = df[df[student_id_col] == student_id].copy()
+            if not student_rows.empty:
+                err_row = student_rows.iloc[0].copy()
+                err_row['error_reason'] = f"Invalid Student ID: '{student_id}'"
+                error_rows.append(err_row)
+            continue
+
         student_rows = df[df[student_id_col] == student_id].copy()
         if student_rows.empty:
             continue
@@ -68,9 +78,9 @@ def _process_validation(df, student_id_col, selection_col, date_col, last_name_c
                 row_dates.loc[failed_parse_mask] = fallback_dates
             student_rows[date_col] = row_dates
             invalid_date_mask = row_dates.isna() & original_vals.notna()
-            if row_count > 1 and invalid_date_mask.any():
+            if invalid_date_mask.any():
                 err_row = student_rows.iloc[0].copy()
-                err_row['error_reason'] = "Multiple rows with invalid dates"
+                err_row['error_reason'] = "Multiple rows with invalid dates" if row_count > 1 else "Invalid date"
                 error_rows.append(err_row)
                 continue
             student_rows = student_rows.sort_values(by=date_col, ascending=False)
