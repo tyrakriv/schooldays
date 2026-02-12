@@ -27,8 +27,8 @@ def run_wizard():
     # 1.5 Last Name Box (For Validation)
     coords["last_name_box"] = get_coordinate("LAST NAME FIELD (To verify student exists)")
 
-    # 1.6 Web Entry (Audit Trail)
-    coords["web_entry_box"] = get_coordinate("WEB ENTRY BOX (Audit Trail - we will type 'pkg auto')")
+    # 1.6 Audit Trail (we type 'auto'). In the app this box is labeled "Pkg Auto" (separate from Yrbk Auto).
+    coords["web_entry_box"] = get_coordinate("PKG AUTO BOX — In the app: 'Pkg Auto'. We will type 'auto' here.")
     
     # 2. Yearbook Choices (Letters)
     print("\nPlease locate the Yearbook Choice buttons/radios.")
