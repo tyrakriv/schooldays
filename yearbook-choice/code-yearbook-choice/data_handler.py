@@ -2,17 +2,18 @@ import pandas as pd
 import os
 from datetime import datetime
 
-def load_and_process_data(excel_path):
+def load_and_process_data(excel_path=None):
     """
-    Reads the Excel file, groups by Student ID, and finds the entry 
-    with the latest Yearbook Date.
-    
+    Reads the Excel file (cleaned data), groups by Student ID.
     Returns: A list of dicts, each representing a student to process.
+    If excel_path is provided (e.g. for tests), use it; else use cleaned_data.xlsx in script dir.
     """
-    from excel_utils import find_column_robust, get_excel_path
+    from excel_utils import find_column_robust
     
-    cleaned_path = os.path.join(os.path.dirname(__file__), "cleaned_data.xlsx")
-    
+    if not excel_path:
+        cleaned_path = os.path.join(os.path.dirname(__file__), "cleaned_data.xlsx")
+    else:
+        cleaned_path = excel_path
     if not os.path.exists(cleaned_path):
         print("Error: 'cleaned_data.xlsx' not found.")
         print("Please run Step 1 (Setup/Validation) first to generate it.")

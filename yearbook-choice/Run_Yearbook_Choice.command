@@ -2,7 +2,7 @@
 cd "$(dirname "$0")"
 
 echo "---------------------------------------------------"
-echo "   SCHOOL DAYS AUTOMATION (Package Entry Mode)"
+echo "   SCHOOL DAYS AUTOMATION (Yearbook Photo Choice)"
 echo "---------------------------------------------------"
 echo ""
 
@@ -11,30 +11,28 @@ if [ -d "venv" ]; then
     source venv/bin/activate
 elif [ -d "../venv" ]; then
     source ../venv/bin/activate
-elif [ -d ".venv" ]; then
-    source .venv/bin/activate
-elif [ -d "../.venv" ]; then
-    source ../.venv/bin/activate
+elif [ -d "code-yearbook-choice/venv" ]; then
+    source code-yearbook-choice/venv/bin/activate
 fi
 
 # Install dependencies if pyautogui missing (needed for config + automation)
 if ! python3 -c "import pyautogui" 2>/dev/null; then
     echo "--- Installing dependencies (one-time) ---"
-    pip3 install -r code-package-choice/requirements.txt
+    pip3 install -r code-yearbook-choice/requirements.txt
     if [ $? -ne 0 ]; then
-        echo "[ERROR] Failed to install dependencies. Run: pip3 install -r code-package-choice/requirements.txt"
+        echo "[ERROR] Failed to install dependencies. Run: pip3 install -r code-yearbook-choice/requirements.txt"
         read -p "Press Enter to exit..."
         exit 1
     fi
     echo ""
 fi
 
-# Step 1: Validation
-echo "--- Step 1: Validating Input Data ---"
-python3 code-package-choice/validate_package.py
+# Step 1: Validation & Cleanup
+echo "--- Step 1: Validating & Cleaning Data ---"
+python3 code-yearbook-choice/validate_data.py
 if [ $? -ne 0 ]; then
     echo ""
-    echo "[ERROR] Validation Failed. Please fix the issue and try again."
+    echo "[ERROR] Validation Failed. Please fix the Excel file and try again."
     read -p "Press Enter to exit..."
     exit 1
 fi
@@ -42,19 +40,19 @@ fi
 # Step 2: Config
 echo ""
 echo "--- Step 2: Configuring Screen Coordinates ---"
-python3 code-package-choice/config_wizard_package.py
+python3 code-yearbook-choice/config_wizard.py
 
 # Step 3: Automation
 echo ""
 echo "--- Step 3: Running Automation ---"
-python3 code-package-choice/main.py
+python3 code-yearbook-choice/main.py
 if [ $? -eq 0 ]; then
     sleep 1
     echo ""
     echo "---------------------------------------------------"
     echo "Done! Press [ENTER] to close this window."
-    read 
-    osascript -e 'tell application "Terminal" to close first window' & 
+    read
+    osascript -e 'tell application "Terminal" to close first window' &
     exit
 else
     sleep 1
@@ -65,6 +63,6 @@ else
     echo ""
     echo "Press [ENTER] to close this window."
     read
-    osascript -e 'tell application "Terminal" to close first window' & 
+    osascript -e 'tell application "Terminal" to close first window' &
     exit
 fi

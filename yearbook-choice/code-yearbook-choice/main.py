@@ -6,6 +6,7 @@ import pyperclip
 import pandas as pd
 from datetime import datetime
 from data_handler import load_and_process_data
+from excel_utils import find_column_robust
 
 COORD_FILE = os.path.join(os.path.dirname(__file__), "coordinates.json")
 SESSION_TIMESTAMP = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -45,11 +46,33 @@ def _write_error_report():
     try:
         if os.path.exists(filename):
             existing = pd.read_excel(filename)
-            new_df = pd.DataFrame(_error_log)
+            # Runtime errors only have id, last_name, selection. Map them into existing columns
+            # so all rows share the same schema (no extra id/last_name/selection columns).
+            id_col = find_column_robust(existing, "student id")
+            ln_col = find_column_robust(existing, "student last name")
+            sel_col = find_column_robust(existing, ["yearbook photo", "selection"])
+            err_col = "error_reason" if "error_reason" in existing.columns else None
+            new_rows = []
+            for entry in _error_log:
+                row = {c: None for c in existing.columns}
+                if id_col:
+                    row[id_col] = entry.get("id")
+                if ln_col:
+                    row[ln_col] = entry.get("last_name")
+                if sel_col:
+                    row[sel_col] = entry.get("selection")
+                if err_col:
+                    row[err_col] = entry.get("error_reason")
+                new_rows.append(row)
+            new_df = pd.DataFrame(new_rows, columns=existing.columns)
             combined = pd.concat([existing, new_df], ignore_index=True)
             combined.to_excel(filename, index=False)
         else:
-            pd.DataFrame(_error_log).to_excel(filename, index=False)
+            # No existing file: write runtime errors with clear column names
+            df = pd.DataFrame(_error_log)
+            if "id" in df.columns:
+                df = df.rename(columns={"id": "Student ID", "last_name": "Last Name", "selection": "Selection"})
+            df.to_excel(filename, index=False)
         print(f"Error report saved: {filename}")
     except Exception as e:
         print(f"Failed to write error report: {e}")
@@ -128,6 +151,16 @@ def run_automation():
     if not students:
         print("No student data found.")
         return False
+
+    # Run summary: what we're about to enter (like package-choice)
+    reports_dir = "reports"
+    if not os.path.exists(reports_dir):
+        os.makedirs(reports_dir)
+    summary_rows = [{"Student ID": s["id"], "Last Name": s.get("last_name", ""), "Yearbook Selection": s.get("selection", "")} for s in students]
+    if summary_rows:
+        summary_file = os.path.join(reports_dir, f"yearbook-choice-run-summary-{SESSION_TIMESTAMP}.xlsx")
+        pd.DataFrame(summary_rows).to_excel(summary_file, index=False)
+        print(f"Run summary saved: {summary_file}")
 
     # Wait a sec to switch focus
     print("Starting in 3 seconds...")
