@@ -259,20 +259,36 @@ def run_automation():
                 else:
                     log_error(sid, fname, lname, "Standard Package", "'quick_package_entry_box' coordinate missing")
             
-            # C. Input Other Items (Group, CD, Touchup) - processed individually
+            # C. Input Other Items (Group, CD, Touchup)
+            # Collect class pix codes so we type them once (no spaces); otherwise second would overwrite first
+            class_pkg_codes = []
+            class_pix_no_pkg_codes = []
             for item in other_items:
                 p_code = item['code']
                 target_box_name = item['target_box']
-                
-                if target_box_name:
-                    if target_box_name == 'touchup':
-                        if 'touchup_dropdown' in coords:
-                            click_and_type(coords['touchup_dropdown'], "Pending")
-                        else:
-                            log_error(sid, fname, lname, "Touchup", "'touchup_dropdown' coordinate missing")
-
-                    elif target_box_name in coords:
-                         click_and_type(coords[target_box_name], p_code)
+                if target_box_name == 'class_pkg_box':
+                    class_pkg_codes.append(p_code)
+                elif target_box_name == 'class_pix_no_pkg_box':
+                    class_pix_no_pkg_codes.append(p_code)
+            if class_pkg_codes and 'class_pkg_box' in coords:
+                click_and_type(coords['class_pkg_box'], ",".join(class_pkg_codes))
+            if class_pix_no_pkg_codes and 'class_pix_no_pkg_box' in coords:
+                click_and_type(coords['class_pix_no_pkg_box'], ",".join(class_pix_no_pkg_codes))
+            for item in other_items:
+                p_code = item['code']
+                target_box_name = item['target_box']
+                if not target_box_name:
+                    continue
+                if target_box_name == 'touchup':
+                    if 'touchup_dropdown' in coords:
+                        click_and_type(coords['touchup_dropdown'], "Pending")
+                    else:
+                        log_error(sid, fname, lname, "Touchup", "'touchup_dropdown' coordinate missing")
+                elif target_box_name == 'cd_box' and 'cd_box' in coords:
+                    click_and_type(coords['cd_box'], p_code)
+                elif target_box_name not in ('class_pkg_box', 'class_pix_no_pkg_box'):
+                    if target_box_name in coords:
+                        click_and_type(coords[target_box_name], p_code)
                     else:
                         log_error(sid, fname, lname, item['raw_product'], f"Missing Coordinate: {target_box_name}")
 
