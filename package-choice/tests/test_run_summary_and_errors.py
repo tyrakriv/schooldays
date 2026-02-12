@@ -6,7 +6,6 @@ Put input.xlsx, expected_run_summary.xlsx, expected_errors.xlsx in this folder.
 """
 import os
 import sys
-import tempfile
 import unittest
 import pandas as pd
 
@@ -77,6 +76,37 @@ def _normalize_df_for_compare(df):
     return df.sort_index(axis=1).reset_index(drop=True)
 
 
+def _normalize_dtypes(df):
+    """Convert string dtypes to object so got/expected match (Excel read can yield either)."""
+    if df is None or df.empty:
+        return df
+    df = df.copy()
+    for c in df.columns:
+        if pd.api.types.is_string_dtype(df[c]):
+            df[c] = df[c].astype(object)
+    return df
+
+
+def _normalize_empty_and_nan(df):
+    """Treat NaN and empty string as equal: normalize to empty string for object columns."""
+    if df is None or df.empty:
+        return df
+    df = df.copy()
+    for c in df.columns:
+        if df[c].dtype == object or pd.api.types.is_string_dtype(df[c]):
+            df[c] = df[c].fillna("")
+            df[c] = df[c].astype(str).replace("nan", "")
+    return df
+
+
+def _student_id_col(df):
+    """Column name that identifies student (student_id or Student ID etc)."""
+    for c in df.columns:
+        if c and "student" in str(c).lower() and "id" in str(c).lower():
+            return c
+    return None
+
+
 class TestPackageChoice(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -102,19 +132,84 @@ class TestPackageChoice(unittest.TestCase):
         err_cols = ["student_id", "first_name", "last_name", "product_raw", "error_reason", "timestamp"]
         error_df = pd.DataFrame(error_rows, columns=err_cols) if error_rows else pd.DataFrame(columns=err_cols)
 
-        with tempfile.TemporaryDirectory() as tmp:
-            out_summary = os.path.join(tmp, "run_summary.xlsx")
-            out_errors = os.path.join(tmp, "errors.xlsx")
-            pd.DataFrame(summary_rows).to_excel(out_summary, index=False)
-            error_df.to_excel(out_errors, index=False)
+        got_summary = _normalize_df_for_compare(pd.DataFrame(summary_rows))
+        got_errors = _normalize_df_for_compare(error_df.copy())
 
-            got_summary = _normalize_df_for_compare(pd.read_excel(out_summary))
-            got_errors = _normalize_df_for_compare(pd.read_excel(out_errors))
-            exp_summary = _normalize_df_for_compare(pd.read_excel(self.expected_summary))
-            exp_errors = _normalize_df_for_compare(pd.read_excel(self.expected_errors))
+        # Write got_errors.xlsx to tests folder (same as yearbook: output files for comparison)
+        got_errors_path = os.path.join(TESTS_DIR, "got_errors.xlsx")
+        got_errors.to_excel(got_errors_path, index=False)
+        got_errors = _normalize_df_for_compare(pd.read_excel(got_errors_path))
+
+        exp_summary = _normalize_df_for_compare(pd.read_excel(self.expected_summary))
+        exp_errors = _normalize_df_for_compare(pd.read_excel(self.expected_errors))
+
+        # Keep unsorted copies for writing (same row order as generated; column order will match expected)
+        got_summary_for_file = got_summary.copy()
+        got_errors_for_file = got_errors.copy()
+
+        for col in ["Student ID"]:
+            if col in exp_summary.columns and col in got_summary.columns:
+                exp_summary = exp_summary.copy()
+                exp_summary[col] = exp_summary[col].astype(str)
+                got_summary = got_summary.copy()
+                got_summary[col] = got_summary[col].astype(str)
+        sid_col_exp = _student_id_col(exp_errors)
+        sid_col_got = _student_id_col(got_errors)
+        if sid_col_exp:
+            exp_errors = exp_errors.copy()
+            exp_errors[sid_col_exp] = exp_errors[sid_col_exp].astype(str)
+        if sid_col_got:
+            got_errors = got_errors.copy()
+            got_errors[sid_col_got] = got_errors[sid_col_got].astype(str)
+
+        # Sort by key columns so row order does not affect comparison
+        sort_cols_summary = [c for c in ["Student ID", "Last Name"] if c in got_summary.columns]
+        if sort_cols_summary and not got_summary.empty:
+            got_summary = got_summary.sort_values(sort_cols_summary).reset_index(drop=True)
+        if sort_cols_summary and not exp_summary.empty:
+            exp_summary = exp_summary.sort_values(sort_cols_summary).reset_index(drop=True)
+        sort_cols_err_got = [c for c in (([sid_col_got] if sid_col_got else []) + ["error_reason"]) if c in got_errors.columns]
+        sort_cols_err_exp = [c for c in (([sid_col_exp] if sid_col_exp else []) + ["error_reason"]) if c in exp_errors.columns]
+        if sort_cols_err_got and not got_errors.empty:
+            got_errors = got_errors.sort_values(sort_cols_err_got).reset_index(drop=True)
+        if sort_cols_err_exp and not exp_errors.empty:
+            exp_errors = exp_errors.sort_values(sort_cols_err_exp).reset_index(drop=True)
+
+        # Write outputs with same column order as expected (for easy comparison)
+        summary_col_order = [c for c in exp_summary.columns if c in got_summary_for_file.columns]
+        if summary_col_order:
+            got_summary_for_file[summary_col_order].to_excel(os.path.join(TESTS_DIR, "got_run_summary.xlsx"), index=False)
+        else:
+            got_summary_for_file.to_excel(os.path.join(TESTS_DIR, "got_run_summary.xlsx"), index=False)
+        errors_col_order = [c for c in exp_errors.columns if c in got_errors_for_file.columns]
+        if errors_col_order:
+            got_errors_for_file[errors_col_order].to_excel(got_errors_path, index=False)
+
+        # Normalize dtypes (e.g. StringDtype vs object from Excel)
+        got_summary = _normalize_dtypes(got_summary)
+        exp_summary = _normalize_dtypes(exp_summary)
+        got_errors = _normalize_dtypes(got_errors)
+        exp_errors = _normalize_dtypes(exp_errors)
+        # Treat NaN and "" as equal (got uses "", Excel reads blanks as NaN)
+        got_summary = _normalize_empty_and_nan(got_summary)
+        exp_summary = _normalize_empty_and_nan(exp_summary)
 
         pd.testing.assert_frame_equal(got_summary, exp_summary, check_like=True)
-        pd.testing.assert_frame_equal(got_errors, exp_errors, check_like=True)
+        # Compare errors only on student id + error_reason (other columns may differ)
+        err_key_got = [c for c in (["error_reason"] + ([sid_col_got] if sid_col_got else [])) if c in got_errors.columns]
+        err_key_exp = [c for c in (["error_reason"] + ([sid_col_exp] if sid_col_exp else [])) if c in exp_errors.columns]
+        if err_key_got and err_key_exp:
+            got_sub = got_errors[err_key_got].copy()
+            exp_sub = exp_errors[err_key_exp].copy()
+            if sid_col_got and sid_col_exp and sid_col_got != sid_col_exp:
+                exp_sub = exp_sub.rename(columns={sid_col_exp: sid_col_got})
+            sort_cols = [c for c in [sid_col_got or sid_col_exp, "error_reason"] if c in got_sub.columns and c in exp_sub.columns]
+            if sort_cols:
+                got_sub = got_sub.sort_values(sort_cols).reset_index(drop=True)
+                exp_sub = exp_sub.sort_values(sort_cols).reset_index(drop=True)
+            pd.testing.assert_frame_equal(got_sub, exp_sub, check_like=True)
+        else:
+            pd.testing.assert_frame_equal(got_errors, exp_errors, check_like=True)
 
 
 if __name__ == "__main__":

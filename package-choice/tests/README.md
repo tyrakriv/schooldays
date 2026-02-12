@@ -10,6 +10,8 @@ Put your sample files in **this folder** (`package-choice/tests/`):
 - **expected_run_summary.xlsx** — the run-summary output you consider correct
 - **expected_errors.xlsx** — the errors output you consider correct (can be empty with just headers)
 
+Each run writes **got_run_summary.xlsx** and **got_errors.xlsx** here (same row/column order as expected) so you can compare.
+
 ## Run
 
 From **this folder** (`package-choice/tests/`):
