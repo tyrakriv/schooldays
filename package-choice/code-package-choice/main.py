@@ -75,7 +75,7 @@ def click_and_type(coord, text, clear_with_backspace=False):
         # Class Pkg / Class Pix No Pkg: we clear by backspace. Cursor must be at end of text (user note in startup instructions).
         for _ in range(40):
             pyautogui.press('backspace')
-        time.sleep(0.05)
+        time.sleep(0.005)
     else:
         pyautogui.tripleClick()
         time.sleep(0.05)
