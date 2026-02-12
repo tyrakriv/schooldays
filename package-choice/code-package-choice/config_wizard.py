@@ -42,7 +42,6 @@ def run_wizard():
     # 3. Package Entry Fields
     print("\n--- PACKAGE ENTRY FIELDS ---")
     coords["quick_package_entry_box"] = get_coordinate("QUICK PACKAGE ENTRY BOX (For standard packages)")
-    print("\n>>> RERUNS: The next two boxes are cleared with backspace. If you ever re-run the automation and they already have text, click in the box and put the cursor at the END of the text first. <<<")
     coords["class_pkg_box"] = get_coordinate("CLASS PKG BOX (Group print WITH personal pkg)")
     coords["class_pix_no_pkg_box"] = get_coordinate("CLASS PIX NO PKG BOX (Group print ONLY)")
     coords["cd_box"] = get_coordinate("CD/DIGITAL INPUT BOX")

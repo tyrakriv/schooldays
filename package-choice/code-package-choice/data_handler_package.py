@@ -298,9 +298,9 @@ def load_and_process_data(excel_path=None):
                     code = item['code']
                     photo_data = item['photo_data']
                     
-                    # Format: code(photo_data) if photo_data exists, otherwise just code
+                    # Format: code'photo_data' if photo_data exists, otherwise just code (single quotes, not parentheses)
                     if photo_data:
-                        formatted_code = f"{code}({photo_data})"
+                        formatted_code = f"{code}'{photo_data}'"
                     else:
                         formatted_code = code
                     

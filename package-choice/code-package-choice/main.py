@@ -67,18 +67,12 @@ def _write_completed_report():
     except Exception as e:
         print(f"Failed to write completed report: {e}")
 
-def click_and_type(coord, text, clear_with_backspace=False):
+def click_and_type(coord, text):
     if not coord:
         return
     pyautogui.click(coord['x'], coord['y'])
-    if clear_with_backspace:
-        # Class Pkg / Class Pix No Pkg: we clear by backspace. Cursor must be at end of text (user note in startup instructions).
-        for _ in range(50):
-            pyautogui.press('backspace')
-        time.sleep(0.005)
-    else:
-        pyautogui.tripleClick()
-        time.sleep(0.05)
+    pyautogui.tripleClick()
+    time.sleep(0.05)
     pyautogui.typewrite(str(text))
     time.sleep(0.05)
 
@@ -95,10 +89,8 @@ def run_automation():
     print("--- READY TO START PACKAGE ENTRY ---")
     print("1. Ensure School Days app is open and ready.")
     print("2. IMPORTANT: Manually CHECK all input boxes (like Touchup) so they are editable!")
-    print("3. RERUNS: If you are re-running and the Class Pkg or Class Pix No Pkg box already has text,")
-    print("   click inside that box and put the cursor at the END of the text (so backspace clears it correctly).")
-    print("4. EMERGENCY STOP: Slam mouse quickly to any corner of the screen.")
-    print("5. OR click on this Terminal window and press Ctrl+C.")
+    print("3. EMERGENCY STOP: Slam mouse quickly to any corner of the screen.")
+    print("4. OR click on this Terminal window and press Ctrl+C.")
     print("------------------------------------")
     
     students = load_and_process_data(None) # Auto-finds Excel
@@ -280,9 +272,7 @@ def run_automation():
                             log_error(sid, fname, lname, "Touchup", "'touchup_dropdown' coordinate missing")
 
                     elif target_box_name in coords:
-                         # Class pkg / class pix no pkg boxes: triple-click doesn't clear reliably, use backspace
-                         clear_backspace = target_box_name in ('class_pkg_box', 'class_pix_no_pkg_box')
-                         click_and_type(coords[target_box_name], p_code, clear_with_backspace=clear_backspace)
+                         click_and_type(coords[target_box_name], p_code)
                     else:
                         log_error(sid, fname, lname, item['raw_product'], f"Missing Coordinate: {target_box_name}")
 
