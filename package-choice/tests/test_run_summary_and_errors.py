@@ -17,14 +17,16 @@ if CODE_DIR not in sys.path:
 
 
 def _build_run_summary(students):
-    """Same logic as main.py: build verif_data from students."""
+    """Same logic as main.py: build verif_data from students (letter-only Class Pix, Group Print Notes)."""
     verif_data = []
     for s in students:
         sid = s["id"]
         lname = s.get("last_name", "")
         for grp in s.get("choices_groups", []):
             quick_pkg = grp["standard_string"]
-            cd_value = touchup_value = class_pix = class_pix_no_pkg = ""
+            cd_value = touchup_value = ""
+            class_pix = ""
+            class_pix_no_pkg = ""
             for item in grp["others"]:
                 if "lost order" in item["raw_product"].lower() or "invalid" in item["raw_product"].lower():
                     continue
@@ -35,9 +37,9 @@ def _build_run_summary(students):
                 elif target_box == "touchup":
                     touchup_value = "Pending"
                 elif target_box == "class_pkg_box":
-                    class_pix = f"{class_pix}, {code}".lstrip(", ") if class_pix else code
+                    class_pix += code
                 elif target_box == "class_pix_no_pkg_box":
-                    class_pix_no_pkg = f"{class_pix_no_pkg}, {code}".lstrip(", ") if class_pix_no_pkg else code
+                    class_pix_no_pkg += code
             verif_data.append({
                 "Student ID": sid,
                 "Last Name": lname,
@@ -47,6 +49,7 @@ def _build_run_summary(students):
                 "Touchup": touchup_value,
                 "Class Pix": class_pix,
                 "Class Pix No Pkg": class_pix_no_pkg,
+                "Group Print Notes": grp.get("group_print_notes", ""),
             })
     return verif_data
 

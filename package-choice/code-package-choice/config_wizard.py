@@ -44,6 +44,7 @@ def run_wizard():
     coords["quick_package_entry_box"] = get_coordinate("QUICK PACKAGE ENTRY BOX (For standard packages)")
     coords["class_pkg_box"] = get_coordinate("CLASS PKG BOX (Group print WITH personal pkg)")
     coords["class_pix_no_pkg_box"] = get_coordinate("CLASS PIX NO PKG BOX (Group print ONLY)")
+    coords["group_print_notes_box"] = get_coordinate("GROUP PRINT NOTES BOX (Short initials from Choose group photo, e.g. AFFS,AFIS,SLF,SLI)")
     coords["cd_box"] = get_coordinate("CD/DIGITAL INPUT BOX")
     
     # 4. Touchups

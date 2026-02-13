@@ -3,10 +3,22 @@ import os
 from excel_utils import find_column_robust, get_excel_path
 from collections import defaultdict
 
+MAX_ENTRY_CHARS = 20
+TRUNCATE_SUFFIX = "..."
+
 def normalize_text(text):
     if pd.isna(text):
         return ""
     return str(text).strip().lower()
+
+def phrase_to_initials(phrase):
+    """First letter of each word, uppercase. e.g. 'Athletic field formal seniors' -> 'AFFS'."""
+    if phrase is None or (isinstance(phrase, float) and pd.isna(phrase)):
+        return ""
+    s = str(phrase).strip()
+    if not s:
+        return ""
+    return "".join(w[0].upper() for w in s.split() if w)
 
 def map_product_to_code(product_name):
     """
@@ -288,35 +300,39 @@ def load_and_process_data(excel_path=None):
                     'reason': "Unknown Product Code (Not 5x7 or 8x10 Group, or recognized pkg)"
                 })
 
-        # Post-process: Assign target boxes for 'others' (Group logic)
+        # Post-process: Assign target boxes for 'others' (Group logic); letter-only for class boxes; group_print_notes
         final_choices = []
-        for key, data in choices_map.items():
-            
-            # If we have accumulated group items, add them individually with photo data
+        for _, data in choices_map.items():
+            group_print_notes = ""
+
+            # If we have accumulated group items, add them with letter-only code (L/M) for class boxes; build notes from unique initials (one per "Choose group photo" value)
             if data.get('group_items'):
+                initials_seen = set()
+                initials_list = []
                 for item in data['group_items']:
                     code = item['code']
-                    photo_data = item['photo_data']
-                    
-                    # Format: code'photo_data' if photo_data exists, otherwise just code (single quotes, no spaces)
-                    if photo_data:
-                        no_spaces = str(photo_data).replace(" ", "")
-                        formatted_code = f"{code}'{no_spaces}'"
-                    else:
-                        formatted_code = code
-                    
+                    photo_data = item.get('photo_data', "") or ""
                     data['others'].append({
-                        'code': formatted_code,
+                        'code': code,  # letter only for Class Pkg / Class Pix No Pkg
                         'type': 'group',
                         'raw_product': f'Group Print {code.upper()}'
                     })
+                    init = phrase_to_initials(photo_data)
+                    if init and init not in initials_seen:
+                        initials_seen.add(init)
+                        initials_list.append(init)
+                if initials_list:
+                    notes_raw = ",".join(initials_list)
+                    if len(notes_raw) > MAX_ENTRY_CHARS:
+                        group_print_notes = notes_raw[:MAX_ENTRY_CHARS] + TRUNCATE_SUFFIX
+                    else:
+                        group_print_notes = notes_raw
 
             # Process 'others' to resolve Group Print box location
             processed_others = []
             for item in data['others']:
                 p_type = item['type']
                 target_box = None
-                
                 if p_type == 'cd':
                     target_box = 'cd_box'
                 elif p_type == 'touchup':
@@ -326,17 +342,15 @@ def load_and_process_data(excel_path=None):
                         target_box = 'class_pkg_box'
                     else:
                         target_box = 'class_pix_no_pkg_box'
-                
                 item['target_box'] = target_box
                 processed_others.append(item)
-            
-            
-            # Only add this choice group if it has actual content (standard packages or valid other items)
+
             if data['standard_string'] or processed_others:
                 final_choices.append({
-                    'photo_choice': data['real_choice'], # Can be None
+                    'photo_choice': data['real_choice'],
                     'standard_string': data['standard_string'],
-                    'others': processed_others
+                    'others': processed_others,
+                    'group_print_notes': group_print_notes
                 })
 
         processed_data.append({

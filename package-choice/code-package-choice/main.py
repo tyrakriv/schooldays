@@ -12,6 +12,9 @@ SESSION_TIMESTAMP = datetime.now().strftime("%Y%m%d_%H%M%S")
 _error_log = []
 _completed_log = []
 
+MAX_ENTRY_CHARS = 20
+TRUNCATE_SUFFIX = "..."
+
 def load_coordinates():
     if not os.path.exists(COORD_FILE):
         print("Error: coordinates_package.json not found. Run config_wizard_package.py first!")
@@ -67,13 +70,21 @@ def _write_completed_report():
     except Exception as e:
         print(f"Failed to write completed report: {e}")
 
+def _cap_with_ellipsis(text):
+    """Max 20 chars; if longer, first 20 + '...'."""
+    s = str(text)
+    if len(s) > MAX_ENTRY_CHARS:
+        return s[:MAX_ENTRY_CHARS] + TRUNCATE_SUFFIX
+    return s
+
 def click_and_type(coord, text):
     if not coord:
         return
+    text = _cap_with_ellipsis(text)
     pyautogui.click(coord['x'], coord['y'])
     pyautogui.tripleClick()
     time.sleep(0.05)
-    pyautogui.typewrite(str(text))
+    pyautogui.typewrite(text)
     time.sleep(0.05)
 
 def run_automation():
@@ -140,17 +151,9 @@ def run_automation():
                 elif target_box == 'touchup':
                     touchup_value = "Pending"  # Always "Pending" for touchup
                 elif target_box == 'class_pkg_box':
-                    # Append to class_pix (may have multiple group prints)
-                    if class_pix:
-                        class_pix += ", " + code
-                    else:
-                        class_pix = code
+                    class_pix += code
                 elif target_box == 'class_pix_no_pkg_box':
-                    # Append to class_pix_no_pkg
-                    if class_pix_no_pkg:
-                        class_pix_no_pkg += ", " + code
-                    else:
-                        class_pix_no_pkg = code
+                    class_pix_no_pkg += code
             
             verif_data.append({
                 'Student ID': sid,
@@ -160,7 +163,8 @@ def run_automation():
                 'CD': cd_value,
                 'Touchup': touchup_value,
                 'Class Pix': class_pix,
-                'Class Pix No Pkg': class_pix_no_pkg
+                'Class Pix No Pkg': class_pix_no_pkg,
+                'Group Print Notes': grp.get('group_print_notes', '')
             })
             
     if verif_data:
@@ -271,9 +275,11 @@ def run_automation():
                 elif target_box_name == 'class_pix_no_pkg_box':
                     class_pix_no_pkg_codes.append(p_code)
             if class_pkg_codes and 'class_pkg_box' in coords:
-                click_and_type(coords['class_pkg_box'], ",".join(class_pkg_codes))
+                click_and_type(coords['class_pkg_box'], "".join(class_pkg_codes))
             if class_pix_no_pkg_codes and 'class_pix_no_pkg_box' in coords:
-                click_and_type(coords['class_pix_no_pkg_box'], ",".join(class_pix_no_pkg_codes))
+                click_and_type(coords['class_pix_no_pkg_box'], "".join(class_pix_no_pkg_codes))
+            if group.get('group_print_notes') and 'group_print_notes_box' in coords:
+                click_and_type(coords['group_print_notes_box'], group['group_print_notes'])
             for item in other_items:
                 p_code = item['code']
                 target_box_name = item['target_box']
@@ -322,11 +328,12 @@ def run_automation():
 
 def search_student(sid, coords):
     if 'search_box' in coords:
+        sid = _cap_with_ellipsis(sid)
         pyautogui.click(coords['search_box']['x'], coords['search_box']['y'])
-        pyautogui.doubleClick() 
+        pyautogui.doubleClick()
         pyautogui.typewrite(sid)
         pyautogui.press('enter')
-        time.sleep(0.1) # Wait for load
+        time.sleep(0.1)  # Wait for load
 
 def read_field_text(coord):
     """
